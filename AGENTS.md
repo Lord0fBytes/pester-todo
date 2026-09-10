@@ -59,13 +59,19 @@ Check current official documentation rather than relying on remembered platform 
 ## Repository setup status
 
 - Added a dependency-free SwiftUI notification proof of concept in `Pester.xcodeproj` (iPhone, iOS 16+).
-- The current experiment schedules a finite batch of 20 numbered one-shot notifications, one minute apart. Snooze replaces the batch starting three minutes later, with “After snooze” titles and numbering restarting at 1. Complete removes pending/delivered test alerts, including legacy requests. This is not indefinite pestering.
+- The current experiment schedules a finite batch of 20 separately identified one-shot notifications with identical title/body, one minute apart. Snooze replaces the batch starting three minutes later, with the same title/body, including after snooze. Complete removes pending/delivered test alerts, including legacy requests. This is not indefinite pestering.
 - Notification categories report Complete, Snooze, app-open taps, and explicit dismissal callbacks. A capped local diagnostic log persists these events; seeing/reading and unattended background delivery are not inferred from callbacks. Actions are serialized and old-batch actions are rejected.
 - Signing uses Xcode automatic signing; select the user's Personal Team and an available bundle identifier before installing.
 - Xcode is installed. The user confirmed installation and delivery of the original ten-second notification on their locked physical iPhone. The user also reported five repeat cycles, resumed delivery after the original one-minute snooze, and completion followed by several minutes of waiting. One visible notification and inconsistent third-party smartwatch alerts were observed with the repeating request. The user subsequently confirmed individual smartwatch alerts and successful three-minute snooze with the numbered batch. Swipe-dismiss logging remains unconfirmed/not observed; comprehensive visual and lifecycle testing remains outstanding.
 - This remains a single-reminder notification experiment. A local diagnostic log and batch-generation token use UserDefaults; reminder storage, arbitrary due dates, backend, and MCP are not implemented.
 
 - `docs/ROADMAP.md` is the user-authored milestone plan: local notification foundation through local v1.0, then external API/MCP experiments and release.
+
+## v0.1.0 completion
+
+- User closed v0.1.0 after confirming repeated third-party smartwatch alerts with identical title/body and a scheduled notification after killing the background app. This validates the observed tests, not unlimited delivery or all lifecycle cases.
+- Same-text separate requests pass the unsigned iPhone build. Internal IDs appear only in diagnostic logs. Swipe-dismiss logging, reboot behavior, and full batch exhaustion remain unverified.
+- The notification foundation is complete; further implementation follows `docs/ROADMAP.md`.
 
 ## Prior conversation
 

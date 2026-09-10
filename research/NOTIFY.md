@@ -130,3 +130,17 @@ No architecture choice or physical-delivery guarantee is established by these no
 Apple also documents a newer [accessory notification forwarding framework](https://developer.apple.com/documentation/accessorynotifications), with customer availability restricted to EU-located devices using an EU Apple Account, and [accessory update/removal handling](https://developer.apple.com/documentation/AccessoryTransportExtension/receiving-ios-notifications-on-an-accessory). Its update guidance says to update without alerting again. This is a separate mechanism and does not establish which protocol this watch uses.
 
 **Release scope:** Preserve the tested finite-batch experiment for v0.1.0. Swipe-dismiss logging, batch exhaustion, reboot/force-quit behavior, and isolated smartwatch causality remain open. The user-authored `docs/ROADMAP.md` defines later milestones; no implementation was added from it in this follow-up.
+
+
+## Controlled same-text experiment — 2026-09-10
+
+Changed only notification text and supporting test labels/logging: all 20 separate requests now use title “Pester test reminder” and body “Still here! Complete to stop, or snooze for 3 minutes.” Snoozed batches use identical text too. Existing distinct request IDs, grouping, sound, actions, minute cadence, finite batch size, and three-minute snooze timing are retained. Internal request IDs are visible in diagnostic log entries, not notification text. Phone/watch results remain pending.
+
+Install the update, Complete any previously scheduled batch, then Start same-text test. Observe at least three alerts on the third-party watch without dismissing between them. If all arrive, changed content is not necessary for individual watch alerts under these test conditions; this still does not prove the watch's underlying protocol. Repeat after snooze and verify completion stops future alerts.
+
+
+## v0.1.0 acceptance — 2026-09-10
+
+The user confirmed repeated alerts on the third-party smartwatch with identical notification title/body, and receipt of a scheduled notification after killing the background iPhone app. Changing notification text is therefore not necessary for repeated watch alerts in this tested separate-request configuration. The watch protocol and the original repeating-request behavior remain unproven.
+
+The user accepted the notification foundation as v0.1.0 complete. Earlier Complete and three-minute Snooze results remain recorded above. This acceptance does not establish reboot behavior, full 20-alert batch exhaustion, indefinite unattended pestering, or dismissal callback reliability. No application code changed after the successful same-text test.

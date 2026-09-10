@@ -10,8 +10,8 @@ struct ContentView: View {
         NavigationStack {
             Form {
                 Section("Pestering test") {
-                    Text("20 numbered alerts, one minute apart. This test stops after the batch ends; it does not repeat indefinitely.")
-                    Button("Start numbered test") {
+                    Text("20 separate alerts with identical text, one minute apart. This test stops after the batch ends; it does not repeat indefinitely.")
+                    Button("Start same-text test") {
                         Task { await test.start() }
                     }
                     .frame(minHeight: 44)
@@ -41,7 +41,7 @@ struct ContentView: View {
                 }
                 Section("On your Lock Screen") {
                     Text("Touch and hold the notification to reveal Complete and Snooze. Swiping it away does not stop pestering.")
-                    Text("Snooze clears the current alerts and schedules a fresh batch starting in 3 minutes, then every minute. Titles change to “After snooze · Pester 1”, with numbering restarting at 1.")
+                    Text("Snooze clears the current alerts and schedules a fresh batch starting in 3 minutes, then every minute. The title and body stay the same, including after snooze.")
                 }
                 Section("Interaction log — newest first") {
                     Text("Saved on this phone. Taps and explicit dismissals may be logged; seeing or reading an alert is not reported. Background delivery is not a log event.")

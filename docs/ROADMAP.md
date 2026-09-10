@@ -2,14 +2,14 @@
 
 Pester is a focused reminder app built around one behavior: a task keeps pestering until it is completed or snoozed. The roadmap below reflects the current implementation path and keeps the first release local and small.
 
-## v0.1.0 — notification foundation
+## ✅ v0.1.0 — notification foundation
 
-- Initial SwiftUI app setup.
-- Build and install Pester on the physical iPhone.
-- Schedule and verify a single notification.
-- Add the first pestering notification behavior.
-- Complete or snooze a reminder from the notification context menu.
-- Perform basic stability testing on the phone.
+✅ Initial SwiftUI app setup.
+✅ Build and install Pester on the physical iPhone.
+✅ Schedule and verify a single notification.
+✅ Add the first pestering notification behavior.
+✅ Complete or snooze a reminder from the notification context menu.
+✅ Perform basic stability testing on the phone.
 
 ## v0.2.0 — configurable pestering
 
@@ -17,9 +17,19 @@ Pester is a focused reminder app built around one behavior: a task keeps pesteri
 - Add customizable pestering duration.
 - Support two notifications with different pestering durations.
 - Verify that changing a duration updates the outstanding notification schedule correctly.
+- Opening the app resets all the pester counters even if no changes were made
 - Test completion and snooze behavior across both schedules.
 
-## v0.3.0 — task inbox
+## v0.3.0 — scheduled future tasks
+
+- Add the ability to schedule a task for a future date and time.
+- Show the scheduled date and time clearly in the task view.
+- Ensure a future task does not pester before its scheduled time.
+- Persist future task schedules across app launches and device restarts.
+- Allow a future task to be edited, completed, snoozed, or deleted before it becomes due.
+- Verify future scheduling on the physical iPhone.
+
+## v0.4.0 — task inbox
 
 - Introduce the inbox.
 - Create tasks with a title and due date/time.
@@ -28,7 +38,7 @@ Pester is a focused reminder app built around one behavior: a task keeps pesteri
 - Edit and delete tasks.
 - Complete or snooze tasks from the inbox and from notification actions.
 
-## v0.4.0 — next-pester ordering
+## v0.5.0 — next-pester ordering
 
 - Track each task’s next pester time.
 - Order the inbox by overdue tasks, next-up tasks, then future tasks.
@@ -36,7 +46,7 @@ Pester is a focused reminder app built around one behavior: a task keeps pesteri
 - Recalculate ordering after completion, snooze, editing, and a delivered notification.
 - Prevent stale or duplicate notification schedules when task timing changes.
 
-## v0.5.0 — polish and stability
+## v0.6.0 — polish and stability
 
 - Polish the inbox, task creation, editing, and notification flows.
 - Improve empty, permission-denied, and scheduling-error states.

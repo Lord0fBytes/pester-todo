@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         Task { @MainActor in
-            PesterTest.shared.record("Foreground presentation requested: \(notification.request.content.title)")
+            PesterTest.shared.record("Foreground presentation requested: \(notification.request.identifier) — \(notification.request.content.title)")
             completionHandler([.banner, .sound, .list])
         }
     }
@@ -47,7 +47,7 @@ final class PesterTest: ObservableObject {
     private let logKey = "pester.test.events"
     @Published private(set) var busy = false
     @Published private(set) var active = false
-    @Published private(set) var status = "Ready for a numbered test: 20 alerts, one minute apart."
+    @Published private(set) var status = "Ready for a same-text test: 20 alerts, one minute apart."
     @Published private(set) var showSettings = false
     @Published private(set) var events: [String] = UserDefaults.standard.stringArray(forKey: "pester.test.events") ?? []
     private let center = UNUserNotificationCenter.current()
@@ -83,7 +83,7 @@ final class PesterTest: ObservableObject {
         if let next = dates.first, let end = dates.last {
             status = "\(requests.count) pending. Next expected: \(next.formatted(date: .omitted, time: .standard)). Last scheduled: \(end.formatted(date: .omitted, time: .standard))."
             if requests.contains(where: { $0.identifier == "pester.repeating-test" }) {
-                status = "Previous repeating test is active. Complete it before starting a numbered batch."
+                status = "Previous repeating test is active. Complete it before starting a same-text batch."
             }
         } else {
             status = "No test alerts remain pending. The batch may have ended or been completed; this does not confirm delivery."
@@ -119,10 +119,8 @@ final class PesterTest: ObservableObject {
             let start = Date()
             for (index, id) in Self.batchIDs.enumerated() {
                 let content = UNMutableNotificationContent()
-                content.title = snoozing ? "After snooze · Pester \(index + 1)" : "Pester \(index + 1)"
-                content.body = snoozing
-                    ? "Your 3-minute snooze has ended. Alert \(index + 1) of 20; one minute apart."
-                    : "Test alert \(index + 1) of 20. Complete to stop, or snooze for 3 minutes."
+                content.title = "Pester test reminder"
+                content.body = "Still here! Complete to stop, or snooze for 3 minutes."
                 content.sound = .default
                 content.categoryIdentifier = "pester.test"
                 content.threadIdentifier = "pester.test"
@@ -132,7 +130,7 @@ final class PesterTest: ObservableObject {
                 try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
             }
             await updateStatus()
-            record(snoozing ? "Snoozed 3 minutes; replaced batch, numbering restarts at 1." : "Started 20 numbered alerts, first in 1 minute.")
+            record(snoozing ? "Snoozed 3 minutes; replaced batch with identical notification text." : "Started 20 separate same-text alerts, first in 1 minute.")
             status = (snoozing ? "Snoozed for 3 minutes. " : "Batch scheduled. ") + status
             if settings.alertSetting != .enabled || settings.authorizationStatus == .provisional {
                 status += " Alerts may be quiet or disabled; check Settings."
@@ -175,7 +173,7 @@ final class PesterTest: ObservableObject {
             case UNNotificationDismissActionIdentifier: name = "Explicit dismissal reported by iOS"
             default: name = "Other response: \(action)"
             }
-            self.record("\(name): \(request.content.title)")
+            self.record("\(name): \(request.identifier) — \(request.content.title)")
             guard action == "complete" || action == "snooze" else { return }
             let generation = request.content.userInfo["generation"] as? String
             let current = UserDefaults.standard.string(forKey: self.generationKey)
