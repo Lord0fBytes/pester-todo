@@ -11,13 +11,14 @@ Pester is a focused reminder app built around one behavior: a task keeps pesteri
 ✅ Complete or snooze a reminder from the notification context menu.
 ✅ Perform basic stability testing on the phone.
 
-## v0.2.0 — configurable pestering
+## ⏳ v0.2.0 — configurable pestering
 
-- Add customizable snooze duration.
-- Add customizable pestering duration.
-- Support two notifications with different pestering durations.
-- Verify that changing a duration updates the outstanding notification schedule correctly.
-- Opening the app resets all the pester counters even if no changes were made
+✅ Implemented, device test pending: customizable snooze duration (1–60 minutes).
+✅ Implemented, device test pending: customizable pestering interval (1–60 minutes).
+✅ Implemented, device test pending: two independent reminders with different pestering intervals.
+✅ Verify that changing a duration updates the outstanding notification schedule correctly.
+- Implemented, device retest pending: opening the app resets overdue tasks only; active pester counts continue unchanged.
+- Implemented, device retest pending: completing or snoozing one task resets other overdue tasks while leaving active, upcoming, and completed tasks unchanged.
 - Test completion and snooze behavior across both schedules.
 
 ## v0.3.0 — scheduled future tasks

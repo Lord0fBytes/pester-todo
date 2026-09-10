@@ -2,62 +2,104 @@ import SwiftUI
 import UIKit
 
 struct ContentView: View {
-    @ObservedObject private var test = PesterTest.shared
-    @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
+
+    private var appVersion: String {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? "0.0.0"
+        let build = Int(info["CFBundleVersion"] as? String ?? "0") ?? 0
+        return "\(version)-\(String(format: "%04d", build))"
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Pestering test") {
-                    Text("20 separate alerts with identical text, one minute apart. This test stops after the batch ends; it does not repeat indefinitely.")
-                    Button("Start same-text test") {
-                        Task { await test.start() }
-                    }
-                    .frame(minHeight: 44)
-                    .disabled(test.busy || test.active)
-                    Button("Snooze 3 minutes") {
-                        Task { await test.start(snoozing: true) }
-                    }
-                    .frame(minHeight: 44)
-                    .disabled(test.busy || !test.active)
-                    Button("Complete") {
-                        Task { await test.complete() }
-                    }
-                    .frame(minHeight: 44)
-                    .disabled(test.busy)
+                Section {
+                    Text("Two independent reminders. Each schedules 8 alerts, then stops. Notification text shows the pester count for debugging. Apply changes restarts only that reminder’s active countdown.")
                 }
-                Section("Status") {
-                    if test.busy { ProgressView("Updating notification schedule…") }
-                    Text(test.status)
-                    if test.showSettings {
-                        Button("Open notification settings") {
-                            if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
-                                openURL(url)
-                            }
-                        }
-                        .frame(minHeight: 44)
-                    }
+                Section("Build") {
+                    Text(appVersion)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .accessibilityLabel("App version \(appVersion)")
                 }
-                Section("On your Lock Screen") {
-                    Text("Touch and hold the notification to reveal Complete and Snooze. Swiping it away does not stop pestering.")
-                    Text("Snooze clears the current alerts and schedules a fresh batch starting in 3 minutes, then every minute. The title and body stay the same, including after snooze.")
-                }
-                Section("Interaction log — newest first") {
-                    Text("Saved on this phone. Taps and explicit dismissals may be logged; seeing or reading an alert is not reported. Background delivery is not a log event.")
-                    if test.events.isEmpty { Text("No interactions recorded yet.") }
-                    ForEach(Array(test.events.enumerated()), id: \.offset) { entry in
-                        Text(entry.element)
-                            .font(.caption)
-                            .textSelection(.enabled)
-                    }
+                ForEach(PesterTest.tests, id: \.id) { test in
+                    ReminderControls(test: test)
                 }
             }
             .navigationTitle("Pester")
-            .task { await test.refresh() }
+            .task { await becameActive() }
             .onChange(of: scenePhase) { phase in
-                if phase == .active { Task { await test.refresh() } }
+                switch phase {
+                case .active:
+                    Task { await becameActive() }
+                case .background:
+                    Task { await becameBackground() }
+                case .inactive:
+                    break
+                @unknown default:
+                    break
+                }
             }
+        }
+    }
+
+    private func becameActive() async {
+        for test in PesterTest.tests { await test.appBecameActive() }
+    }
+
+    private func becameBackground() async {
+        for test in PesterTest.tests { await test.appBecameBackground() }
+    }
+}
+
+private struct ReminderControls: View {
+    @ObservedObject var test: PesterTest
+    @Environment(\.openURL) private var openURL
+    @State private var interval = 1
+    @State private var snooze = 3
+
+    private var changed: Bool { interval != test.pesterMinutes || snooze != test.snoozeMinutes }
+
+    var body: some View {
+        Section(test.name) {
+            Stepper("Pester every \(interval) min", value: $interval, in: 1...60)
+                .disabled(test.busy)
+            Stepper("Snooze for \(snooze) min", value: $snooze, in: 1...60)
+                .disabled(test.busy)
+            Button(test.active ? "Apply changes & restart countdown" : "Save durations") {
+                Task { await test.apply(interval: interval, snooze: snooze) }
+            }
+            .frame(minHeight: 44)
+            .disabled(test.busy || !changed)
+            Button("Start \(test.name)") { Task { await test.start() } }
+                .frame(minHeight: 44)
+                .disabled(test.busy || test.active || changed)
+            Button("Snooze \(test.snoozeMinutes) min") { Task { await test.start(snoozing: true) } }
+                .frame(minHeight: 44)
+                .disabled(test.busy || !test.active || changed)
+            Button("Complete \(test.name)") { Task { await test.complete() } }
+                .frame(minHeight: 44)
+                .disabled(test.busy)
+            if changed { Text("Save or apply the durations before starting or snoozing.") }
+            if test.busy { ProgressView("Updating…") }
+            Text(test.status)
+            if test.showSettings {
+                Button("Open notification settings") {
+                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                }
+                .frame(minHeight: 44)
+            }
+            DisclosureGroup("Interaction log") {
+                Text("Local events only; background delivery and reading an alert are not reported.")
+                ForEach(Array(test.events.enumerated()), id: \.offset) { entry in
+                    Text(entry.element).font(.caption).textSelection(.enabled)
+                }
+            }
+        }
+        .onAppear {
+            interval = test.pesterMinutes
+            snooze = test.snoozeMinutes
         }
     }
 }

@@ -138,6 +138,28 @@ Changed only notification text and supporting test labels/logging: all 20 separa
 
 Install the update, Complete any previously scheduled batch, then Start same-text test. Observe at least three alerts on the third-party watch without dismissing between them. If all arrive, changed content is not necessary for individual watch alerts under these test conditions; this still does not prove the watch's underlying protocol. Repeat after snooze and verify completion stops future alerts.
 
+## Debug pester counts — 2026-09-10
+
+The notification title/body now includes the scheduled count (`Pester 1/8`, `Pester 2/8`, etc.) to make counter resets observable during v0.2 testing. Snooze creates a fresh batch beginning at `Pester 1/8`. This is temporary debugging copy and does not change request identity or timing.
+
+## v0.2 lifecycle reset experiment — 2026-09-10 (superseded behavior retained for history)
+
+Implemented, build verified, physical-device test pending:
+
+- When Pester becomes active, an active or overdue test task has its pending/delivered batch removed and its pester count reset. It is marked as waiting while the app is open.
+- When Pester enters the background, waiting tasks receive a fresh batch beginning at `Pester 1/8` after their configured pester duration.
+- Upcoming snoozed tasks retain their existing schedule when the app opens. Completed tasks remain completed.
+- Foreground notification presentation is suppressed. If an upcoming snooze expires while Pester remains open, that task is reset and waits for the app to enter the background.
+- Complete or Snooze resets other active/overdue test tasks. In the background, their fresh batches are installed immediately; while Pester is visible, they wait until it leaves the foreground. Upcoming and completed tasks are left unchanged.
+
+The background transition supplies only a limited execution opportunity. Device testing must confirm that all eight requests are installed before suspension after switching apps or locking the phone. This experiment does not establish a general background-execution guarantee.
+
+### Revised after device use
+
+The user rejected resetting active tasks because it felt wrong in use. The revised behavior resets only an overdue task after its batch is exhausted. Opening Pester preserves active and upcoming schedules. Foreground delivery remains suppressed, but a suppressed alert consumes only that occurrence and does not clear or restart the remaining active batch.
+
+Complete and Snooze affect the associated task and reset other overdue tasks only. The broad cross-task reset was removed because it cleared or rescheduled unrelated active notifications. A later device test showed that removing all cross-task behavior also left an overdue Reminder B unchanged after snoozing Reminder A, so a narrow overdue-only reset was added. Physical-device regression tests must confirm that overdue B restarts at `Pester 1/8` while active or upcoming B keeps its pending notifications and next debug count.
+
 
 ## v0.1.0 acceptance — 2026-09-10
 

@@ -15,41 +15,107 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         let center = UNUserNotificationCenter.current()
         center.delegate = self
-        let actions = [
+        center.setNotificationCategories([UNNotificationCategory(identifier: "pester.test", actions: [
             UNNotificationAction(identifier: "complete", title: "Complete", options: []),
-            UNNotificationAction(identifier: "snooze", title: "Snooze 3 minutes", options: [])
-        ]
-        center.setNotificationCategories([UNNotificationCategory(identifier: "pester.test", actions: actions, intentIdentifiers: [], options: [.customDismissAction])])
+            UNNotificationAction(identifier: "snooze", title: "Snooze", options: [])
+        ], intentIdentifiers: [], options: [.customDismissAction])])
+        // Retire v0.1 requests before the two independent v0.2 schedules are used.
+        let legacyIDs = (1...20).map { "pester.numbered-test.\($0)" } + ["pester.repeating-test", "pester.notification-test"]
+        center.removePendingNotificationRequests(withIdentifiers: legacyIDs)
+        center.removeDeliveredNotifications(withIdentifiers: legacyIDs)
         return true
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // Pester stays quiet while its UI is visible. If a snooze expires while
+        // the app remains open, reset that task and arm it for the next exit.
+        completionHandler([])
         Task { @MainActor in
-            PesterTest.shared.record("Foreground presentation requested: \(notification.request.identifier) — \(notification.request.content.title)")
-            completionHandler([.banner, .sound, .list])
+            await PesterTest.test(for: notification.request)?.notificationSuppressedInForeground(notification.request)
         }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         Task { @MainActor in
             defer { completionHandler() }
-            await PesterTest.shared.handle(response)
+            await PesterTest.test(for: response.notification.request)?.handle(response)
         }
     }
 }
 
 @MainActor
 final class PesterTest: ObservableObject {
-    static let shared = PesterTest()
-    private static let batchIDs = (1...20).map { "pester.numbered-test.\($0)" }
-    private static let allIDs = batchIDs + ["pester.repeating-test", "pester.notification-test"]
-    private let generationKey = "pester.test.generation"
-    private let logKey = "pester.test.events"
+    private enum LifecycleState: String {
+        case idle
+        case active
+        case upcoming
+        case pausedWhileOpen
+        case completed
+    }
+
+    static let batchCount = 8
+    static let tests = [PesterTest(id: "a", name: "Reminder A", defaultInterval: 1),
+                        PesterTest(id: "b", name: "Reminder B", defaultInterval: 2)]
+    static func test(for request: UNNotificationRequest) -> PesterTest? {
+        tests.first { $0.id == request.content.userInfo["testID"] as? String }
+    }
+    let id: String
+    let name: String
+    private var allIDs: [String] { (1...Self.batchCount).map { "pester.v02.\(id).\($0)" } }
+    private var generationKey: String { "pester.v02.\(id).generation" }
+    private var logKey: String { "pester.v02.\(id).events" }
+    private var stateKey: String { "pester.v02.\(id).state" }
     @Published private(set) var busy = false
     @Published private(set) var active = false
-    @Published private(set) var status = "Ready for a same-text test: 20 alerts, one minute apart."
+    @Published private(set) var status = "Ready."
     @Published private(set) var showSettings = false
-    @Published private(set) var events: [String] = UserDefaults.standard.stringArray(forKey: "pester.test.events") ?? []
+    @Published private(set) var events: [String]
+    @Published private(set) var pesterMinutes: Int
+    @Published private(set) var snoozeMinutes: Int
+
+    private init(id: String, name: String, defaultInterval: Int) {
+        self.id = id
+        self.name = name
+        let defaults = UserDefaults.standard
+        let interval = defaults.integer(forKey: "pester.v02.\(id).interval")
+        let snooze = defaults.integer(forKey: "pester.v02.\(id).snooze")
+        pesterMinutes = (1...60).contains(interval) ? interval : defaultInterval
+        snoozeMinutes = (1...60).contains(snooze) ? snooze : 3
+        events = defaults.stringArray(forKey: "pester.v02.\(id).events") ?? []
+    }
+
+    private func saveSettings(interval: Int, snooze: Int) {
+        pesterMinutes = interval
+        snoozeMinutes = snooze
+        UserDefaults.standard.set(interval, forKey: "pester.v02.\(id).interval")
+        UserDefaults.standard.set(snooze, forKey: "pester.v02.\(id).snooze")
+    }
+
+    private var lifecycleState: LifecycleState {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: stateKey),
+                  let state = LifecycleState(rawValue: raw) else {
+                return UserDefaults.standard.string(forKey: generationKey) == nil ? .idle : .active
+            }
+            return state
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: stateKey) }
+    }
+
+    func apply(interval: Int, snooze: Int) async {
+        guard (1...60).contains(interval), (1...60).contains(snooze) else { return }
+        await serially {
+            let pending = await self.center.pendingNotificationRequests()
+            if pending.contains(where: { self.allIDs.contains($0.identifier) }) {
+                await self.installBatch(snoozing: false, interval: interval, snooze: snooze)
+            } else {
+                self.saveSettings(interval: interval, snooze: snooze)
+                await self.updateStatus()
+                self.record("Settings saved: pester \(interval) min, snooze \(snooze) min.")
+            }
+        }
+    }
+
     private let center = UNUserNotificationCenter.current()
     // Serialize UI and background actions across suspension points; never drop Complete.
     private var lastOperation: Task<Void, Never>?
@@ -72,29 +138,106 @@ final class PesterTest: ObservableObject {
         UserDefaults.standard.set(events, forKey: logKey)
     }
 
-    func refresh() async {
-        await serially { await self.updateStatus() }
+    func appBecameActive() async {
+        await serially {
+            self.record("App opened — reset check")
+            let pending = await self.pendingRequests()
+            let hasLifecycle = UserDefaults.standard.string(forKey: self.generationKey) != nil
+            let state = self.lifecycleState
+
+            if state == .upcoming, !pending.isEmpty {
+                self.record("Upcoming snooze preserved; pester count not reset.")
+                await self.updateStatus()
+            } else if state == .pausedWhileOpen {
+                await self.updateStatus()
+            } else if hasLifecycle && pending.isEmpty && state != .completed {
+                self.pauseAndReset(reason: "overdue")
+            } else if state == .active {
+                self.record("Active pester count preserved.")
+                await self.updateStatus()
+            } else {
+                await self.updateStatus()
+            }
+        }
+    }
+
+    func appBecameBackground() async {
+        await serially {
+            guard self.lifecycleState == .pausedWhileOpen else {
+                await self.updateStatus()
+                return
+            }
+            await self.installBatch(snoozing: false)
+            self.record("App left foreground — pestering restarted at 1/\(Self.batchCount).")
+        }
+    }
+
+    func notificationSuppressedInForeground(_ request: UNNotificationRequest) async {
+        await serially {
+            self.record("Foreground alert suppressed: \(request.identifier)")
+            let pending = await self.pendingRequests()
+            if pending.isEmpty,
+               UserDefaults.standard.string(forKey: self.generationKey) != nil,
+               self.lifecycleState != .completed {
+                self.pauseAndReset(reason: "overdue")
+            } else {
+                await self.updateStatus()
+            }
+        }
+    }
+
+    private func pendingRequests() async -> [UNNotificationRequest] {
+        await center.pendingNotificationRequests().filter { self.allIDs.contains($0.identifier) }
+    }
+
+    private func pauseAndReset(reason: String) {
+        center.removePendingNotificationRequests(withIdentifiers: allIDs)
+        center.removeDeliveredNotifications(withIdentifiers: allIDs)
+        lifecycleState = .pausedWhileOpen
+        active = true
+        status = "Pester count reset from \(reason). Leave Pester to restart at 1/\(Self.batchCount)."
+        record("Pester count reset from \(reason); waiting for app to leave foreground.")
     }
 
     private func updateStatus() async {
-        let requests = await center.pendingNotificationRequests().filter { Self.allIDs.contains($0.identifier) }
-        active = !requests.isEmpty
+        let requests = await pendingRequests()
+        let state = lifecycleState
+        active = !requests.isEmpty || state == .pausedWhileOpen
         let dates = requests.compactMap { ($0.trigger as? UNTimeIntervalNotificationTrigger)?.nextTriggerDate() }.sorted()
-        if let next = dates.first, let end = dates.last {
-            status = "\(requests.count) pending. Next expected: \(next.formatted(date: .omitted, time: .standard)). Last scheduled: \(end.formatted(date: .omitted, time: .standard))."
-            if requests.contains(where: { $0.identifier == "pester.repeating-test" }) {
-                status = "Previous repeating test is active. Complete it before starting a same-text batch."
-            }
+        if state == .pausedWhileOpen {
+            status = "Pester count reset. Leave Pester to restart at 1/\(Self.batchCount)."
+        } else if let next = dates.first, let end = dates.last {
+            let label = state == .upcoming ? "Upcoming" : "Active"
+            status = "\(label): \(requests.count) pending. Next expected: \(next.formatted(date: .omitted, time: .standard)). Last scheduled: \(end.formatted(date: .omitted, time: .standard))."
+        } else if UserDefaults.standard.string(forKey: generationKey) != nil, state != .completed {
+            active = true
+            status = "Overdue: all \(Self.batchCount) pester notifications were exhausted. Open Pester to reset."
+        } else if state == .completed {
+            status = "Completed. No alerts remain scheduled."
         } else {
-            status = "No test alerts remain pending. The batch may have ended or been completed; this does not confirm delivery."
+            status = "Not started. No alerts are scheduled."
         }
     }
 
     func start(snoozing: Bool = false) async {
-        await serially { await self.installBatch(snoozing: snoozing) }
+        await serially {
+            if snoozing {
+                await self.installBatch(snoozing: true)
+            } else if UIApplication.shared.applicationState == .active {
+                if UserDefaults.standard.string(forKey: self.generationKey) == nil {
+                    UserDefaults.standard.set(UUID().uuidString, forKey: self.generationKey)
+                }
+                self.pauseAndReset(reason: "start")
+            } else {
+                await self.installBatch(snoozing: false)
+            }
+        }
+        if snoozing { await Self.resetOtherOverdueTasks(excluding: id) }
     }
 
-    private func installBatch(snoozing: Bool) async {
+    private func installBatch(snoozing: Bool, interval: Int? = nil, snooze: Int? = nil) async {
+        let interval = interval ?? pesterMinutes
+        let snooze = snooze ?? snoozeMinutes
         showSettings = false
         var replacing = false
         do {
@@ -112,34 +255,38 @@ final class PesterTest: ObservableObject {
             // This experiment intentionally uses a finite batch: a repeating trigger
             // cannot change its content or have a distinct initial snooze delay.
             let generation = UUID().uuidString
-            center.removePendingNotificationRequests(withIdentifiers: Self.allIDs)
-            center.removeDeliveredNotifications(withIdentifiers: Self.allIDs)
+            center.removePendingNotificationRequests(withIdentifiers: self.allIDs)
+            center.removeDeliveredNotifications(withIdentifiers: self.allIDs)
             replacing = true
             UserDefaults.standard.set(generation, forKey: generationKey)
+            lifecycleState = snoozing ? .upcoming : .active
             let start = Date()
-            for (index, id) in Self.batchIDs.enumerated() {
+            for (index, id) in self.allIDs.enumerated() {
                 let content = UNMutableNotificationContent()
-                content.title = "Pester test reminder"
-                content.body = "Still here! Complete to stop, or snooze for 3 minutes."
+                let count = index + 1
+                content.title = "\(name) · Pester \(count)/\(self.allIDs.count)"
+                content.body = "Pester count \(count) of \(self.allIDs.count). Complete to stop, or snooze for \(snooze) minutes."
                 content.sound = .default
                 content.categoryIdentifier = "pester.test"
-                content.threadIdentifier = "pester.test"
-                content.userInfo = ["generation": generation]
-                let fireDate = start.addingTimeInterval(TimeInterval((snoozing ? 180 : 60) + index * 60))
+                content.threadIdentifier = "pester.test.\(self.id)"
+                content.userInfo = ["generation": generation, "testID": self.id]
+                let fireDate = start.addingTimeInterval(TimeInterval(((snoozing ? snooze : interval) + index * interval) * 60))
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, fireDate.timeIntervalSinceNow), repeats: false)
                 try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
             }
+            saveSettings(interval: interval, snooze: snooze)
             await updateStatus()
-            record(snoozing ? "Snoozed 3 minutes; replaced batch with identical notification text." : "Started 20 separate same-text alerts, first in 1 minute.")
-            status = (snoozing ? "Snoozed for 3 minutes. " : "Batch scheduled. ") + status
+            record(snoozing ? "Snoozed \(snooze) min; then every \(interval) min." : "Started \(Self.batchCount) alerts, every \(interval) min.")
+            status = (snoozing ? "Snoozed for \(snooze) minutes. " : "Batch scheduled. ") + status
             if settings.alertSetting != .enabled || settings.authorizationStatus == .provisional {
                 status += " Alerts may be quiet or disabled; check Settings."
                 showSettings = true
             }
         } catch {
             if replacing {
-                center.removePendingNotificationRequests(withIdentifiers: Self.allIDs)
+                center.removePendingNotificationRequests(withIdentifiers: self.allIDs)
                 UserDefaults.standard.removeObject(forKey: generationKey)
+                lifecycleState = .idle
             }
             await updateStatus()
             status = "Could not schedule: \(error.localizedDescription). " + (replacing ? "Partial batch cancelled. " : "") + status
@@ -149,21 +296,24 @@ final class PesterTest: ObservableObject {
 
     func complete() async {
         await serially { await self.cancelBatch() }
+        await Self.resetOtherOverdueTasks(excluding: id)
     }
 
     private func cancelBatch() async {
-        center.removePendingNotificationRequests(withIdentifiers: Self.allIDs)
-        center.removeDeliveredNotifications(withIdentifiers: Self.allIDs)
+        center.removePendingNotificationRequests(withIdentifiers: self.allIDs)
+        center.removeDeliveredNotifications(withIdentifiers: self.allIDs)
         UserDefaults.standard.removeObject(forKey: generationKey)
+        lifecycleState = .completed
         await updateStatus()
         status = active ? "A test is still pending. Try Complete again." : "Completed. No test alerts remain scheduled."
         record(status)
     }
 
     func handle(_ response: UNNotificationResponse) async {
+        var handledLifecycleAction = false
         await serially {
             let request = response.notification.request
-            guard Self.allIDs.contains(request.identifier) else { return }
+            guard self.allIDs.contains(request.identifier) else { return }
             let action = response.actionIdentifier
             let name: String
             switch action {
@@ -184,6 +334,35 @@ final class PesterTest: ObservableObject {
             }
             if action == "complete" { await self.cancelBatch() }
             else { await self.installBatch(snoozing: true) }
+            handledLifecycleAction = true
+        }
+        if handledLifecycleAction { await Self.resetOtherOverdueTasks(excluding: id) }
+    }
+
+    private static func resetOtherOverdueTasks(excluding id: String) async {
+        for test in tests where test.id != id {
+            await test.resetIfOverdue()
+        }
+    }
+
+    private func resetIfOverdue() async {
+        await serially {
+            let pending = await self.pendingRequests()
+            let hasLifecycle = UserDefaults.standard.string(forKey: self.generationKey) != nil
+            let state = self.lifecycleState
+            guard hasLifecycle,
+                  pending.isEmpty,
+                  state != .completed,
+                  state != .idle else {
+                return
+            }
+
+            if UIApplication.shared.applicationState == .active {
+                self.pauseAndReset(reason: "overdue task action")
+            } else {
+                await self.installBatch(snoozing: false)
+                self.record("Overdue pester count reset by another task's Complete/Snooze action; restarted at 1/\(Self.batchCount).")
+            }
         }
     }
 }
