@@ -1,6 +1,34 @@
 # Pester testing
 
-This is the physical-device test checklist for the current `0.2.0` work. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current development build is `0.3.0-0004`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+
+## v0.3.0 future scheduling
+
+- [ ] Schedule Reminder A several minutes in the future.
+  - Expect its exact future date and time to appear as Upcoming.
+  - Expect no A notification before that time.
+  - Expect `Pester 1/8` at the scheduled time, followed by alerts at the selected pester duration.
+- [ ] Close Pester, reopen it before A is due, and close it again.
+  - Expect the same scheduled time to remain visible and no early alert.
+- [ ] Force-quit Pester before A is due.
+  - Expect the scheduled notification to arrive without reopening the app.
+- [ ] Restart the iPhone before A is due.
+  - Expect the schedule and selected time to survive and the notification to arrive.
+- [ ] Reschedule A to a different future time.
+  - Expect only the new A schedule to fire; no alert should arrive at the old time.
+  - Expect Reminder B to remain unchanged.
+- [ ] Change A's durations while it is upcoming.
+  - Expect A to retain its chosen first-fire time and use the new pester duration after that.
+- [ ] Snooze A before its scheduled time.
+  - Expect the original future schedule to be replaced by a snooze starting from now.
+- [ ] Complete A before its scheduled time.
+  - Expect no A alerts and a Completed state.
+- [ ] Schedule A again, then use Delete schedule before it is due.
+  - Expect no A alerts and a Not started state.
+- [ ] Schedule A and B for separate future times, then edit or delete A.
+  - Expect B's date, pending count, and notifications to remain unchanged.
+- [ ] Keep Pester open when a future schedule becomes due.
+  - Expect its banner and sound to be suppressed while the remaining batch stays active.
 
 ## Basic scheduling
 
@@ -100,3 +128,4 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-10 | v0.1.0 | Snooze and Complete | Passed | — |
 | 2026-09-10 | v0.1.0 | Notifications after killing app | Passed | — |
 | 2026-09-10 | v0.2.0 | Two independent schedules | Passed by user | Add detailed counter/reset results |
+| 2026-09-10 | 0.3.0-0004 | Future scheduling | Awaiting physical-device test | Test the v0.3.0 checklist above |
