@@ -1,6 +1,145 @@
 # Pester testing
 
-This is the physical-device test checklist. The current development build is `0.3.1-0005`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current development build is `0.4.2-0014`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+
+## v0.4.2 deletion controls
+
+- [x] Open an active or upcoming task and inspect its management actions.
+  - *Expect* Delete task to be the only removal action; there should be no separate Cancel notification schedule option.
+  - *User notes:* I dont actually want a cancel option. In my opinion cancel and delete are the same functionality. This will make more sense during the cleanup phase (v0.6)
+- [x] Open a task and tap Delete task.
+  - *Expect* a permanent-deletion confirmation. Cancel it once and confirm it the second time; expect the task and all of its pending and delivered notifications to be removed.
+  - *User notes:* ✅ Cofirmed
+- [x] Swipe a middle task row left as far as possible, tap Delete, and cancel the confirmation. Repeat with the last row.
+  - *Expect* both rows to remain in place while their confirmation is visible and after it is canceled. The selected row should remain highlighted behind the short confirmation dialog. Rows below the middle task must not shift up and redraw. Repeat on a middle row and confirm deletion; expect the list to close the gap only after confirmation.
+  - *User notes:* Prior build `0.4.2-0011`: 🐛 The swipe doesnt fully remove the row now, but when you click delete it does remove it and then makes it come back when the confirmation box comes up. See video I took on my phone
+	  - Interestingly enough the swipe + delete button on the last task in the list doesnt change the list. See video from above.
+  - *User notes:* ✅ Build `0.4.2-0014` keeps the row in place and the selected-row highlight looks correct.
+
+## v0.4.1 snooze display
+
+- [x] Snooze an active task and leave Pester open through the snooze deadline.
+  - *Expect* the inbox and task detail to show a fixed `Snoozed until` time while the task is Snoozed. After the deadline, expect the task to become Active and show its moving `Next` pester time.
+  - *Expect* a task snoozed at 09:02 for 10 minutes with a 1-minute pester duration to show 09:12 while snoozed, 09:13 after Pester 1/8, and 09:14 after Pester 2/8. It must not jump to 09:23 or 09:25.
+  - *User notes:* ✅ Times update properly and the notification behavior remains correct.
+- [x] Snooze a task, then change its pester and snooze durations before the original snooze deadline.
+  - *Expect* the task to remain Snoozed until its original deadline. Expect `Snoozed until` to remain fixed while the replacement batch adopts the new pester duration after that deadline.
+  - *User notes:* ✅ Functionality remains correct after the display-time fix.
+- [x] Close and reopen Pester while a task is snoozed.
+  - *Expect* the same fixed `Snoozed until` time to remain visible after relaunch.
+  - *User notes:* ✅ Confirmed working
+
+**Proposed State**
+08:55 - Create new task for 09:00
+	- Display: Next Pester time: 09:00
+09:00 - Pester 1/8 happens
+	- Display: Next Pester time: 09:01
+09:01 - Pester 2/8 happens
+	- Display: Next Pester time: 09:02
+09:02 - Pester 3/8 happens
+	- Display: Next Pester time: 09:03
+	- *User Snoozes (10 mins)*
+	- Display: Next pester time: 09:12
+		- Because it's 09:02 and the user wants to snooze for 10 mins
+09:03 - No changes
+	- Display: Next pester time: 09:12
+09:04 - No changes
+	- Display: Next pester time: 09:12
+....
+09:12 - Pester 1/8 happens
+	- Display: Next Pester time: 09:13
+		- Because its not active and the next pester time should be set
+09:13 - Pester 2/8 happens
+	- Display: Next Pester time: 09:14
+
+**Current State:**
+08:55 - Create new task for 09:00
+	- Display: Next Pester time: 09:00
+09:00 - Pester 1/8 happens
+	- Display: Next Pester time: 09:01
+09:01 - Pester 2/8 happens
+	- Display: Next Pester time: 09:02
+09:02 - Pester 3/8 happens
+	- Display: Next Pester time: 09:03
+	- *User Snoozes (10 mins)*
+	- Display: Next pester time: 09:12
+		- Because it's 09:02 and the user wants to snooze for 10 mins
+09:03 - No changes
+	- Display: Next pester time: 09:12
+09:04 - No changes
+	- Display: Next pester time: 09:12
+....
+09:12 - Pester 1/8 happens
+	- Display: Next Pester time: 09:23 (should be 09:13)
+	- 🐛 Doesnt properly update the display time from this point on
+09:13 - Pester 2/8 happens
+	- Display: Next Pester time: 09:25 (should be 09:14)
+09:14 - Pester 1/8 happens
+	- Display: Next Pester time: 09:27 (should be 09:15)
+09:15 - Pester 2/8 happens
+	- Display: Next Pester time: 09:29 (should be 09:16)
+
+Title-only edits still reschedule the task in this build. That cleanup is intentionally deferred to v0.6.0.
+
+## v0.4.0 task inbox
+
+- [x] Install `0.4.0-0008` over the tested `0.3.1-0005` build.
+  - *Expect* Reminder A and Reminder B, including their settings and any pending schedules, to remain available.
+  - *User notes*: ✅ Worked as expected.
+- [x] Tap Add and create a task with a unique title, a future due time, and distinct pester and snooze durations.
+  - *Expect* the task to appear in the inbox as Upcoming and its first notification to arrive at the chosen due time.
+  - *Expect* later notifications to follow the task's pester duration and show the correct title.
+  - *User notes* : 🐛 When clicking on the '+' button it froze and generated some errors in the output.
+- [x] After force-quitting Pester, launch it and open the New Task screen three times.
+  - *Expect* the New Task screen to open promptly each time without blocking input.
+  - *User notes:* The first opening on `0.4.0-0008` paused for several seconds and logged `System gesture gate timed out`, `Result accumulator timeout`, and repeated `Reporter disconnected` messages. Record whether the delay happens only on the first opening, on every opening, or only while attached to Xcode. Also try one launch directly from the phone without Xcode attached.
+  - *User notes:* ✅ Force closing while un-attached from xcode; did NOT produce delay
+	  - ✅ Force closing app & restarting phone; did NOT produce delay
+	  - 🐛 Force closing while attached to Xcode; produced DELAY
+	  - 🐛 Re-building app from Xcode while attached; produced DELAY
+	  - Re-building app from Xcode and unattaching; this one is tough because it still stays attached to Xcode even after unplugging so im not sure if there is something else going on but it created delays.
+- [x] Create at least two new tasks with different settings.
+  - *Expect* each task to retain its own title, due time, pester duration, snooze duration, state, and notification batch.
+  - *User notes:* ✅ Works as expected
+- [x] Close and reopen Pester, then force-quit and reopen it.
+  - *Expect* all created tasks and their properties to remain present without duplicate tasks or schedules.
+  - *User notes:* ✅ Works as expected
+- [x] Restart the iPhone while a created task is upcoming.
+  - *Expect* the task and its schedule to survive, and its notification to arrive.
+  - *User notes:* ✅ Works as expected
+- [x] Edit a task's title, due time, pester duration, and snooze duration.
+  - *Expect* the inbox and detail screen to show the new values immediately.
+  - *Expect* no notification at the old due time; the replacement batch should use the new title and timing.
+  - *User Notes:* 🐛 When editing the object it re-creates the scheduled task and moves it to upcoming. All I did was change the title. It should detect that I didnt change the date/time so the status and pester times should not change. Let's talk about this one before fixing it
+  - 🐛 When a task is snoozed and you change the pester time and snooze time it remains in the snoozed state.
+  - 🐛 There is some weird logic going on with snoozed tasks that have their pester/snooze time changed while snoozed. I need to replicate this before moving on or fixing this bug.
+  - *User testing:* Created new task (scheduled for today 09:00). Shows correct scheduled date/time. Waited for first pester. Fired at 09:00. Snoozed task (10 mins) shows 09:10 (status: Snoozed). Adjusted the pester/snooze time (1min/3min). Hit apply settings. Status stays snoozed. Next pester time is set for original snooze time still (09:10). Functionally it works as it should, but it displays the time weird on the home screen. It will then pester me at the initial snooze time and then again at the updated pester time.
+  - 🐛 Another bug. When a task is snoozed it will update the 'Next ' time to show snoozed time + pester time on the home screen. Example. If a task has a pester time of 1 min and I snooze it for 10 min at 09:00. It will show the 'Next' text as 09:11, then 09:12, then 09:13. I confirmed it increments after each 'pester time' duration. Looks like it is only the text though. The actual timer begins after the snooze time like it should. This just might be the difference in 'schedule for' time vs 'next pester time' strings. It looks like we shouldnt change the 'next pester time' while the task is snoozed.
+- [x] Swipe an active task right and choose Complete.
+  - *Expect* that task to become Completed and send no more alerts; other active tasks should continue unchanged.
+  - *User notes:* ✅ Works as expected
+- [x] Swipe an active task left and choose Snooze.
+  - *Expect* that task to become Snoozed and restart at `Pester 1/8` after its own snooze duration; other active tasks should continue unchanged.
+  - *User notes:* ✅ Works as expected
+- [x] Complete one created task from its notification action.
+  - *Expect* the matching task to become Completed and its remaining notifications to disappear.
+  - *User notes:* ✅ Works as expected
+- [x] Snooze another created task from its notification action.
+  - *Expect* the matching task to become Snoozed and restart after its configured snooze duration.
+  - *User notes:* ✅ Works as expected
+- [x] Use Delete schedule from a task's detail screen.
+  - *Expect* the task to remain in the inbox as Not scheduled, with no remaining notifications.
+  - *User notes:* Task was deleted but it also removed it from the inbox. This is fine, but just different than what you expected.
+- [x] Fully swipe a task row left and confirm permanent deletion, then delete a different task from its detail screen.
+  - Expect the task and its delivered and pending notifications to disappear and remain absent after relaunch.
+  - *User notes:* ✅ Works as expected, but it looks weird because the task row disappears and then re-appears when the confirmation box comes up. Not sure if this is just normal iOS behavior
+- [x] Verify the empty state after permanently deleting every task, then create a new task from it.
+  - *User notes:* ✅ Works as expected
+- [x] Check the inbox, editor, and detail screen in light and dark appearance and with larger Dynamic Type.
+  - Expect the build number to remain centered at the bottom of the inbox without a list-row background in both appearances.
+  - *User notes:* ✅ Works as expected
+
+The app currently schedules eight separate notification requests for every active or upcoming task. iOS notification scheduling limits still need physical-device characterization, so test many simultaneous tasks separately rather than treating this milestone as proof of unlimited scheduling capacity.
 
 ## v0.3.1 task list and detail
 
@@ -147,3 +286,7 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-10 | v0.2.0 | Two independent schedules | Passed by user | Add detailed counter/reset results |
 | 2026-09-10 | 0.3.0-0004 | Future scheduling | Passed on physical iPhone | — |
 | 2026-09-10 | 0.3.1-0005 | Task list and detail | Passed on physical iPhone | — |
+| 2026-09-11 | 0.4.0-0008 | First New Task presentation | Paused for several seconds with iOS gesture/text-input service timeouts | Repeat attached and unattached to Xcode before changing app code |
+| 2026-09-11 | 0.4.1-0010 | Snoozed and active next-pester display | Passed on physical iPhone; times update correctly and scheduling behavior remains correct | — |
+| 2026-09-11 | 0.4.2-0011 | Swipe Delete confirmation | Middle-row deletion caused an optimistic row removal and list redraw before confirmation; the last row hid the effect because nothing followed it | Remove the destructive swipe role while retaining red styling and confirmed deletion |
+| 2026-09-11 | 0.4.2-0014 | Task deletion controls | Passed on physical iPhone; confirmation no longer redraws the list and the selected-row highlight is clear | — |

@@ -31,15 +31,101 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         // the app remains open, reset that task and arm it for the next exit.
         completionHandler([])
         Task { @MainActor in
-            await PesterTask.task(for: notification.request)?.notificationSuppressedInForeground(notification.request)
+            await TaskStore.shared.task(for: notification.request)?.notificationSuppressedInForeground(notification.request)
         }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         Task { @MainActor in
             defer { completionHandler() }
-            await PesterTask.task(for: response.notification.request)?.handle(response)
+            await TaskStore.shared.task(for: response.notification.request)?.handle(response)
         }
+    }
+}
+
+@MainActor
+final class TaskStore: ObservableObject {
+    struct StoredTask: Codable {
+        let id: UUID
+        let storageID: String
+        var title: String
+        var dueAt: Date?
+        var pesterMinutes: Int
+        var snoozeMinutes: Int
+        var snoozedUntil: Date?
+        var completedAt: Date?
+        let createdAt: Date
+        var updatedAt: Date
+    }
+
+    static let shared = TaskStore()
+
+    @Published private(set) var tasks: [PesterTask] = []
+
+    private let defaults = UserDefaults.standard
+    private let tasksKey = "pester.v04.tasks"
+    private let migrationKey = "pester.v04.migratedLegacyTasks"
+
+    private init() {
+        if let data = defaults.data(forKey: tasksKey),
+           let records = try? JSONDecoder().decode([StoredTask].self, from: data) {
+            tasks = records.map(PesterTask.init(record:))
+        } else if !defaults.bool(forKey: migrationKey) {
+            tasks = PesterTask.legacyTasks()
+            defaults.set(true, forKey: migrationKey)
+        }
+        attachPersistence()
+        save()
+    }
+
+    func task(for request: UNNotificationRequest) -> PesterTask? {
+        tasks.first { $0.matches(request) }
+    }
+
+    @discardableResult
+    func create(title: String, dueAt: Date, pesterMinutes: Int, snoozeMinutes: Int) async -> PesterTask? {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty, dueAt > Date() else { return nil }
+        let now = Date()
+        let task = PesterTask(record: StoredTask(
+            id: UUID(),
+            storageID: UUID().uuidString.lowercased(),
+            title: trimmedTitle,
+            dueAt: dueAt,
+            pesterMinutes: pesterMinutes,
+            snoozeMinutes: snoozeMinutes,
+            snoozedUntil: nil,
+            completedAt: nil,
+            createdAt: now,
+            updatedAt: now
+        ))
+        task.onChange = { [weak self] in self?.save() }
+        tasks.append(task)
+        save()
+        await task.schedule(at: dueAt)
+        return task
+    }
+
+    func update(_ task: PesterTask, title: String, dueAt: Date, pesterMinutes: Int, snoozeMinutes: Int) async {
+        guard tasks.contains(where: { $0.id == task.id }) else { return }
+        await task.update(title: title, dueAt: dueAt, pesterMinutes: pesterMinutes, snoozeMinutes: snoozeMinutes)
+    }
+
+    func delete(_ task: PesterTask) async {
+        await task.removePermanently()
+        tasks.removeAll { $0.id == task.id }
+        save()
+    }
+
+    private func attachPersistence() {
+        for task in tasks {
+            task.onChange = { [weak self] in self?.save() }
+        }
+    }
+
+    private func save() {
+        guard let data = try? JSONEncoder().encode(tasks.map(\.record)) else { return }
+        defaults.set(data, forKey: tasksKey)
     }
 }
 
@@ -64,19 +150,13 @@ final class PesterTask: ObservableObject, Identifiable {
     }
 
     static let batchCount = 8
-    static let tasks = [
-        PesterTask(id: UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!, storageID: "a", title: "Reminder A", defaultInterval: 1),
-        PesterTask(id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!, storageID: "b", title: "Reminder B", defaultInterval: 2)
-    ]
-
-    static func task(for request: UNNotificationRequest) -> PesterTask? {
-        let payload = request.content.userInfo
-        return tasks.first {
-            $0.id.uuidString == payload["taskID"] as? String || $0.storageID == payload["testID"] as? String
-        }
-    }
     let id: UUID
-    let title: String
+    @Published private(set) var title: String
+    @Published private(set) var dueAt: Date?
+    @Published private(set) var snoozedUntil: Date?
+    @Published private(set) var completedAt: Date?
+    let createdAt: Date
+    @Published private(set) var updatedAt: Date
     private let storageID: String
     private var allIDs: [String] { (1...Self.batchCount).map { "pester.v02.\(storageID).\($0)" } }
     private var generationKey: String { "pester.v02.\(storageID).generation" }
@@ -95,18 +175,54 @@ final class PesterTask: ObservableObject, Identifiable {
     @Published private(set) var nextPesterAt: Date?
     @Published private(set) var pesterCount = 0
     let maxPesterCount = PesterTask.batchCount
+    var onChange: (() -> Void)?
 
-    private init(id: UUID, storageID: String, title: String, defaultInterval: Int) {
-        self.id = id
-        self.storageID = storageID
-        self.title = title
+    fileprivate init(record: TaskStore.StoredTask) {
+        id = record.id
+        storageID = record.storageID
+        title = record.title
+        dueAt = record.dueAt
+        snoozedUntil = record.snoozedUntil
+        completedAt = record.completedAt
+        createdAt = record.createdAt
+        updatedAt = record.updatedAt
         let defaults = UserDefaults.standard
-        let interval = defaults.integer(forKey: "pester.v02.\(storageID).interval")
-        let snooze = defaults.integer(forKey: "pester.v02.\(storageID).snooze")
-        pesterMinutes = (1...60).contains(interval) ? interval : defaultInterval
-        snoozeMinutes = (1...60).contains(snooze) ? snooze : 3
+        let savedInterval = defaults.integer(forKey: "pester.v02.\(storageID).interval")
+        let savedSnooze = defaults.integer(forKey: "pester.v02.\(storageID).snooze")
+        pesterMinutes = (1...60).contains(savedInterval) ? savedInterval : record.pesterMinutes
+        snoozeMinutes = (1...60).contains(savedSnooze) ? savedSnooze : record.snoozeMinutes
         events = defaults.stringArray(forKey: "pester.v02.\(storageID).events") ?? []
         scheduledStart = defaults.object(forKey: "pester.v03.\(storageID).scheduledStart") as? Date
+    }
+
+    fileprivate static func legacyTasks() -> [PesterTask] {
+        let now = Date()
+        return [
+            PesterTask(record: TaskStore.StoredTask(
+                id: UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!, storageID: "a", title: "Reminder A",
+                dueAt: UserDefaults.standard.object(forKey: "pester.v03.a.scheduledStart") as? Date,
+                pesterMinutes: 1, snoozeMinutes: 3, snoozedUntil: nil, completedAt: nil, createdAt: now, updatedAt: now
+            )),
+            PesterTask(record: TaskStore.StoredTask(
+                id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!, storageID: "b", title: "Reminder B",
+                dueAt: UserDefaults.standard.object(forKey: "pester.v03.b.scheduledStart") as? Date,
+                pesterMinutes: 2, snoozeMinutes: 3, snoozedUntil: nil, completedAt: nil, createdAt: now, updatedAt: now
+            ))
+        ]
+    }
+
+    fileprivate var record: TaskStore.StoredTask {
+        TaskStore.StoredTask(
+            id: id, storageID: storageID, title: title, dueAt: dueAt,
+            pesterMinutes: pesterMinutes, snoozeMinutes: snoozeMinutes,
+            snoozedUntil: snoozedUntil, completedAt: completedAt,
+            createdAt: createdAt, updatedAt: updatedAt
+        )
+    }
+
+    fileprivate func matches(_ request: UNNotificationRequest) -> Bool {
+        let payload = request.content.userInfo
+        return id.uuidString == payload["taskID"] as? String || storageID == payload["testID"] as? String
     }
 
     private func saveSettings(interval: Int, snooze: Int) {
@@ -114,6 +230,7 @@ final class PesterTask: ObservableObject, Identifiable {
         snoozeMinutes = snooze
         UserDefaults.standard.set(interval, forKey: "pester.v02.\(storageID).interval")
         UserDefaults.standard.set(snooze, forKey: "pester.v02.\(storageID).snooze")
+        markUpdated()
     }
 
     private var lifecycleState: LifecycleState {
@@ -245,7 +362,7 @@ final class PesterTask: ObservableObject, Identifiable {
         }
         let state = lifecycleState
         active = !requests.isEmpty || state == .pausedWhileOpen
-        let dates = requests.compactMap { ($0.trigger as? UNTimeIntervalNotificationTrigger)?.nextTriggerDate() }.sorted()
+        let dates = requests.compactMap(scheduledFireDate(for:)).sorted()
         nextPesterAt = dates.first
         pesterCount = min(Self.batchCount, max(0, Self.batchCount - requests.count))
         if state == .pausedWhileOpen {
@@ -285,6 +402,10 @@ final class PesterTask: ObservableObject, Identifiable {
             if snoozing {
                 await self.installBatch(snoozing: true)
             } else if UIApplication.shared.applicationState == .active {
+                self.dueAt = Date()
+                self.completedAt = nil
+                self.snoozedUntil = nil
+                self.markUpdated()
                 if UserDefaults.standard.string(forKey: self.generationKey) == nil {
                     UserDefaults.standard.set(UUID().uuidString, forKey: self.generationKey)
                 }
@@ -313,8 +434,42 @@ final class PesterTask: ObservableObject, Identifiable {
             UserDefaults.standard.removeObject(forKey: self.generationKey)
             self.lifecycleState = .idle
             self.setScheduledStart(nil)
+            self.dueAt = nil
+            self.snoozedUntil = nil
+            self.completedAt = nil
+            self.markUpdated()
             await self.updateStatus()
             self.record("Schedule deleted.")
+        }
+    }
+
+    func update(title: String, dueAt: Date, pesterMinutes: Int, snoozeMinutes: Int) async {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty,
+              dueAt > Date(),
+              (1...60).contains(pesterMinutes),
+              (1...60).contains(snoozeMinutes) else { return }
+        await serially {
+            self.title = trimmedTitle
+            self.markUpdated()
+            await self.installBatch(
+                snoozing: false,
+                interval: pesterMinutes,
+                snooze: snoozeMinutes,
+                scheduledFor: dueAt
+            )
+        }
+    }
+
+    fileprivate func removePermanently() async {
+        await serially {
+            self.center.removePendingNotificationRequests(withIdentifiers: self.allIDs)
+            self.center.removeDeliveredNotifications(withIdentifiers: self.allIDs)
+            let defaults = UserDefaults.standard
+            [self.generationKey, self.logKey, self.stateKey, self.scheduledStartKey,
+             "pester.v02.\(self.storageID).interval", "pester.v02.\(self.storageID).snooze"].forEach {
+                defaults.removeObject(forKey: $0)
+            }
         }
     }
 
@@ -345,16 +500,30 @@ final class PesterTask: ObservableObject, Identifiable {
             let firstFireDate = scheduledFor ?? Date().addingTimeInterval(TimeInterval((snoozing ? snooze : interval) * 60))
             lifecycleState = snoozing ? .snoozed : (scheduledFor != nil ? .upcoming : .active)
             setScheduledStart(firstFireDate)
+            if snoozing {
+                snoozedUntil = firstFireDate
+                completedAt = nil
+            } else if let scheduledFor {
+                dueAt = scheduledFor
+                snoozedUntil = nil
+                completedAt = nil
+            }
             for (index, id) in self.allIDs.enumerated() {
                 let content = UNMutableNotificationContent()
                 let count = index + 1
+                let fireDate = firstFireDate.addingTimeInterval(TimeInterval(index * interval * 60))
                 content.title = "\(title) · Pester \(count)/\(self.allIDs.count)"
                 content.body = "Pester count \(count) of \(self.allIDs.count). Complete to stop, or snooze for \(snooze) minutes."
                 content.sound = .default
                 content.categoryIdentifier = "pester.test"
                 content.threadIdentifier = "pester.test.\(self.id)"
-                content.userInfo = ["generation": generation, "taskID": self.id.uuidString, "testID": self.storageID]
-                let fireDate = firstFireDate.addingTimeInterval(TimeInterval(index * interval * 60))
+                content.userInfo = [
+                    "generation": generation,
+                    "taskID": self.id.uuidString,
+                    "testID": self.storageID,
+                    "sequence": count,
+                    "fireAt": fireDate.timeIntervalSince1970
+                ]
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, fireDate.timeIntervalSinceNow), repeats: false)
                 try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
             }
@@ -398,6 +567,9 @@ final class PesterTask: ObservableObject, Identifiable {
         UserDefaults.standard.removeObject(forKey: generationKey)
         lifecycleState = .completed
         setScheduledStart(nil)
+        snoozedUntil = nil
+        completedAt = Date()
+        markUpdated()
         await updateStatus()
         status = active ? "A notification is still pending. Try Complete again." : "Completed. No task alerts remain scheduled."
         record(status)
@@ -434,7 +606,7 @@ final class PesterTask: ObservableObject, Identifiable {
     }
 
     private static func resetOtherOverdueTasks(excluding id: UUID) async {
-        for task in tasks where task.id != id {
+        for task in TaskStore.shared.tasks where task.id != id {
             await task.resetIfOverdue()
         }
     }
@@ -467,5 +639,28 @@ final class PesterTask: ObservableObject, Identifiable {
         } else {
             UserDefaults.standard.removeObject(forKey: scheduledStartKey)
         }
+    }
+
+    private func scheduledFireDate(for request: UNNotificationRequest) -> Date? {
+        if let timestamp = request.content.userInfo["fireAt"] as? TimeInterval {
+            return Date(timeIntervalSince1970: timestamp)
+        }
+
+        // Requests created before v0.4.1-0010 only persisted a relative trigger.
+        // Reconstruct their absolute fire time from the stable batch start and
+        // identifier sequence so reading status never moves the displayed time.
+        if let start = scheduledStart,
+           let sequenceText = request.identifier.split(separator: ".").last,
+           let sequence = Int(sequenceText),
+           (1...Self.batchCount).contains(sequence) {
+            return start.addingTimeInterval(TimeInterval((sequence - 1) * pesterMinutes * 60))
+        }
+
+        return (request.trigger as? UNTimeIntervalNotificationTrigger)?.nextTriggerDate()
+    }
+
+    private func markUpdated() {
+        updatedAt = Date()
+        onChange?()
     }
 }

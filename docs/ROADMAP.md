@@ -43,19 +43,40 @@ Completed and verified on the physical iPhone in build `0.3.0-0004`.
 
 Completed and verified on the physical iPhone in build `0.3.1-0005`.
 
-## v0.4.0 — task inbox
+## ✅ v0.4.0 — task inbox
 
-- Introduce the inbox.
-- Create tasks with a title and due date/time.
-- Give each task its own snooze duration and pester duration.
-- Persist tasks locally across app launches and device restarts.
-- Edit and delete tasks.
-- Complete or snooze tasks from the inbox and from notification actions.
+- ✅ Introduce the inbox.
+- ✅ Create tasks with a title and due date/time.
+- ✅ Give each task its own snooze duration and pester duration.
+- ✅ Persist tasks locally across app launches and device restarts.
+- ✅ Edit and delete tasks.
+- ✅ Complete or snooze tasks from the inbox and from notification actions.
+
+Completed across builds `0.4.0-0008` through `0.4.2-0014` and verified on the physical iPhone.
+
+## ✅ v0.4.1 — snooze display correction
+
+- ✅ Show a stable Snoozed until time while a task remains snoozed.
+- ✅ Continue showing the moving next-pester time once the task is active.
+- ⏭️ Defer title-only edit rescheduling cleanup to the v0.6.0 UI cleanup and polish milestone.
+
+Implemented and verified on the physical iPhone in build `0.4.1-0010`.
+
+## ✅ v0.4.2 — task deletion clarity
+
+- ✅ Use Delete task as the single removal action; do not expose a separate schedule-cancellation action.
+- ✅ Require an explicit Delete tap and confirmation after swiping a task row.
+- ✅ Prevent SwiftUI's destructive swipe role from optimistically removing and redrawing the row before confirmation.
+- ✅ Highlight the selected row while the native swipe confirmation is visible.
+
+Implemented and verified on the physical iPhone in build `0.4.2-0014`.
 
 ## v0.5.0 — next-pester ordering
 
 - Track each task’s next pester time.
-- Order the inbox by overdue tasks, next-up tasks, then future tasks.
+- Order the inbox by overdue tasks (past the X pester count), snoozed tasks (status snoozed), today tasks (any task with a status upcoming and date todays date), then future tasks (any task with a status of upcoming and the date beyond today).
+	- Create sections on the home screen for these groups
+	- Add some color indicator next to each (overdue=red; snoozed=purple; today=green; future=gray)
 - Show the next pester time clearly for each task.
 - Recalculate ordering after completion, snooze, editing, and a delivered notification.
 - Prevent stale or duplicate notification schedules when task timing changes.
@@ -63,6 +84,9 @@ Completed and verified on the physical iPhone in build `0.3.1-0005`.
 ## v0.6.0 — polish and stability
 
 - Polish the inbox, task creation, editing, and notification flows.
+- Prevent title-only edits from changing a task's lifecycle or notification timing.
+- Add colors to overdue, upcoming, active
+- Create a hidden section of completed tasks
 - Improve empty, permission-denied, and scheduling-error states.
 - Verify Dynamic Type, accessibility labels, and common screen sizes.
 - Test repeated launches, edits, completion, snoozing, and notification actions.
