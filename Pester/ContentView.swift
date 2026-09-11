@@ -14,6 +14,34 @@ struct ContentView: View {
         return "\(version)-\(String(format: "%04d", build))"
     }
 
+    private var inboxSections: [InboxSection] {
+        InboxSection.Kind.allCases.compactMap { kind in
+            let matchingTasks = store.tasks
+                .filter { kind.includes($0) }
+                .sorted {
+                    let firstPriority = kind.sortPriority(for: $0)
+                    let secondPriority = kind.sortPriority(for: $1)
+                    if firstPriority != secondPriority { return firstPriority < secondPriority }
+                    let firstDate = kind.sortDate(for: $0)
+                    let secondDate = kind.sortDate(for: $1)
+                    if firstDate != secondDate { return firstDate < secondDate }
+                    return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+                }
+            return matchingTasks.isEmpty ? nil : InboxSection(kind: kind, tasks: matchingTasks)
+        }
+    }
+
+    private var completedTasks: [PesterTask] {
+        store.tasks
+            .filter { $0.state == .completed }
+            .sorted {
+                let firstDate = $0.completedAt ?? $0.updatedAt
+                let secondDate = $1.completedAt ?? $1.updatedAt
+                if firstDate != secondDate { return firstDate > secondDate }
+                return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -22,8 +50,8 @@ struct ContentView: View {
                         Text("Choose a task to view its schedule, durations, actions, and activity.")
                             .foregroundStyle(.secondary)
                     }
-                    Section("Tasks") {
-                        if store.tasks.isEmpty {
+                    if store.tasks.isEmpty {
+                        Section("Tasks") {
                             VStack(spacing: 8) {
                                 Label("No tasks", systemImage: "checklist")
                                     .font(.headline)
@@ -33,8 +61,11 @@ struct ContentView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                        } else {
-                            ForEach(store.tasks) { task in
+                        }
+                    } else {
+                        ForEach(inboxSections) { section in
+                            Section {
+                                ForEach(section.tasks) { task in
                                 NavigationLink(value: task.id) { TaskRow(task: task) }
                                     .listRowBackground(
                                         taskToDelete?.id == task.id
@@ -67,6 +98,34 @@ struct ContentView: View {
                                             .tint(.indigo)
                                         }
                                     }
+                                }
+                            } header: {
+                                Label {
+                                    Text(section.kind.title)
+                                } icon: {
+                                    Image(systemName: "circle.fill")
+                                        .font(.caption2)
+                                        .foregroundStyle(section.kind.tint)
+                                }
+                            }
+                        }
+                        if !completedTasks.isEmpty {
+                            Section {
+                                NavigationLink {
+                                    CompletedTasksView(store: store)
+                                } label: {
+                                    Label {
+                                        HStack {
+                                            Text("Completed")
+                                            Spacer()
+                                            Text("\(completedTasks.count)")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    } icon: {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(.green)
+                                    }
+                                }
                             }
                         }
                     }
@@ -116,13 +175,12 @@ struct ContentView: View {
             } message: {
                 Text("The task and all of its pending and delivered notifications will be removed.")
             }
-            .task { await becameActive() }
-            .onChange(of: scenePhase) { phase in
-                switch phase {
+            .task(id: scenePhase) {
+                switch scenePhase {
                 case .active:
-                    Task { await becameActive() }
+                    await becameActive()
                 case .background:
-                    Task { await becameBackground() }
+                    await becameBackground()
                 case .inactive:
                     break
                 @unknown default:
@@ -138,6 +196,118 @@ struct ContentView: View {
 
     private func becameBackground() async {
         for task in store.tasks { await task.appBecameBackground() }
+    }
+}
+
+private struct InboxSection: Identifiable {
+    enum Kind: Int, CaseIterable, Identifiable {
+        case pestering
+        case snoozed
+        case today
+        case future
+        case unscheduled
+
+        var id: Int { rawValue }
+
+        var title: String {
+            switch self {
+            case .pestering: "Pestering"
+            case .snoozed: "Snoozed"
+            case .today: "Today"
+            case .future: "Future"
+            case .unscheduled: "Unscheduled"
+            }
+        }
+
+        var tint: Color {
+            switch self {
+            case .pestering: .red
+            case .snoozed: .purple
+            case .today: .green
+            case .future, .unscheduled: .secondary
+            }
+        }
+
+        @MainActor
+        func includes(_ task: PesterTask) -> Bool {
+            switch self {
+            case .pestering:
+                return task.state == .overdue || task.state == .active
+            case .snoozed:
+                return task.state == .snoozed
+            case .today:
+                guard task.state == .upcoming else { return false }
+                guard let date = task.nextPesterAt ?? task.scheduledStart ?? task.dueAt else { return true }
+                let today = Calendar.current.startOfDay(for: Date())
+                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
+                return date < tomorrow
+            case .future:
+                guard task.state == .upcoming,
+                      let date = task.nextPesterAt ?? task.scheduledStart ?? task.dueAt else { return false }
+                let today = Calendar.current.startOfDay(for: Date())
+                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
+                return date >= tomorrow
+            case .unscheduled:
+                return task.state == .notScheduled
+            }
+        }
+
+        @MainActor
+        func sortPriority(for task: PesterTask) -> Int {
+            self == .pestering && task.state == .overdue ? 0 : 1
+        }
+
+        @MainActor
+        func sortDate(for task: PesterTask) -> Date {
+            switch self {
+            case .pestering:
+                return task.nextPesterAt ?? task.dueAt ?? task.updatedAt
+            case .snoozed:
+                return task.snoozedUntil ?? task.scheduledStart ?? task.updatedAt
+            case .today, .future:
+                return task.nextPesterAt ?? task.scheduledStart ?? task.dueAt ?? task.updatedAt
+            case .unscheduled:
+                return task.updatedAt
+            }
+        }
+    }
+
+    let kind: Kind
+    let tasks: [PesterTask]
+    var id: Kind { kind }
+}
+
+private struct CompletedTasksView: View {
+    @ObservedObject var store: TaskStore
+
+    private var tasks: [PesterTask] {
+        store.tasks
+            .filter { $0.state == .completed }
+            .sorted {
+                let firstDate = $0.completedAt ?? $0.updatedAt
+                let secondDate = $1.completedAt ?? $1.updatedAt
+                if firstDate != secondDate { return firstDate > secondDate }
+                return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            }
+    }
+
+    var body: some View {
+        List {
+            if tasks.isEmpty {
+                Text("No completed tasks")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(tasks) { task in
+                    NavigationLink {
+                        TaskDetailView(task: task, store: store)
+                    } label: {
+                        TaskRow(task: task)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Completed")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
