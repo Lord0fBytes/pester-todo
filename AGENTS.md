@@ -30,7 +30,7 @@ Pester is a focused native iPhone app: persistent reminders that keep pestering 
 - Notification content is delivered by iOS; the app can receive callbacks for custom actions, opening a notification, and some explicit dismissals. It cannot infer that a person merely saw or read an alert, and a banner swipe/reveal is not guaranteed to produce a dismissal callback.
 - Dismissal is not completion. Clearing an alert should not stop pestering; Complete and Snooze are the explicit lifecycle actions.
 - Local notification delivery is best effort and platform-controlled. A successful schedule or pending-request snapshot does not prove presentation, sound, smartwatch forwarding, or exact timing.
-- v0.1.0 through v0.3.1 are complete and merged into `main`. Build `0.3.1-0005` is the current physically tested release.
+- v0.1.0 through v0.5.0 are complete and merged into `main`. Build `0.5.0-0018` is the current physically tested release.
 - When the app opens, only overdue tasks reset. Active tasks keep their current pester count and pending notifications. Upcoming future-scheduled or snoozed tasks retain their upcoming state and schedule. Completed tasks remain completed.
 - The app-open lifecycle event is confirmed in testing: each reminder log records `App opened — reset check`.
 - Completing or snoozing a notification resets other overdue tasks only. Active and upcoming tasks keep their pending notifications and counts; completed tasks remain completed. The triggering task follows its explicit Complete or Snooze transition.
@@ -85,7 +85,10 @@ Check current official documentation rather than relying on remembered platform 
 
 ## Repository setup status
 
-- Current physically tested release: `0.4.2-0014`. The v0.4 task-inbox milestone and its v0.4.1/v0.4.2 corrections passed physical-iPhone testing and are complete. v0.5.0 next introduces inbox grouping and next-pester ordering.
+- Current physically tested release: `0.5.0-0018`. v0.5.0 inbox grouping and next-pester ordering are complete and merged into `main`.
+- The v0.5 inbox uses ordered, nonempty sections: Pestering, Snoozed, Today, Future, then Unscheduled. Pestering contains Active and Overdue tasks. Today contains only Upcoming tasks due today. Completed tasks are hidden from the inbox sections and available through a dedicated Completed screen at the bottom of the inbox.
+- Sections sort by their relevant scheduled time, earliest first, with task title as a stable tie-breaker. Overdue tasks sort before Active tasks within Pestering. Headers use red for Pestering, purple for Snoozed, green for Today, and gray for Future and Unscheduled.
+- `TaskStore` republishes task-level lifecycle changes so the parent inbox recomputes grouping and ordering after scheduling, snoozing, completion, overdue reset, and notification-status refreshes. Build `0.5.0-0016` coalesces those refreshes and uses one scene-phase task, preventing repeated NavigationStack updates within a single display frame.
 - Build `0.4.0-0008` introduces a dynamic task inbox. Users can create tasks with a title, future due date/time, pester duration, and snooze duration; edit them; complete or snooze them with inbox swipe actions; and permanently delete them with a full trailing swipe or from the detail screen.
 - The first physical-device opening of the New Task sheet in `0.4.0-0008` paused for several seconds while iOS logged gesture-gate, result-accumulator, and reporter-disconnection timeouts. A similar first-opening delay was reproduced in the iOS 26.5 simulator. The Add handler itself only changes sheet presentation state; repeat testing with and without Xcode attached is pending before attributing the delay to Pester code.
 - Initial `0.4.0-0008` phone testing passed legacy-task migration, creation of multiple independent tasks, persistence across relaunch/force-quit/reboot, inbox Complete/Snooze gestures, notification Complete/Snooze actions, and light/dark appearance. Editing remains open: changing only a title unexpectedly rescheduled the task as Upcoming, and changing durations on a snoozed task produced unclear snoozed-state behavior that needs reproduction before implementation changes.
@@ -113,8 +116,8 @@ Check current official documentation rather than relying on remembered platform 
 - The accepted navigation pattern is a compact task list with state and next-pester summaries, followed by a native detail screen for task properties and actions.
 - Notification categories request Complete, Snooze, app-open, and explicit-dismiss callbacks. Swipe-dismiss logging remains unconfirmed; no read receipt or unattended delivery callback is inferred.
 - Signing uses Xcode automatic signing with the existing project team configuration.
-- `docs/ROADMAP.md` is the user-authored milestone plan. v0.4 is complete; v0.5.0 is the next milestone.
-- Build identification uses `MARKETING_VERSION` for the release (currently `0.4.2`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `14`). The app displays them as `0.4.2-0014`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
+- `docs/ROADMAP.md` is the user-authored milestone plan. v0.5.0 is complete and verified on the physical iPhone.
+- Build identification uses `MARKETING_VERSION` for the release (currently `0.5.0`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `18`). The app displays them as `0.5.0-0018`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
 
 ## v0.1.0 completion
 

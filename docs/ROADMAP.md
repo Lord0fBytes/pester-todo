@@ -71,22 +71,24 @@ Implemented and verified on the physical iPhone in build `0.4.1-0010`.
 
 Implemented and verified on the physical iPhone in build `0.4.2-0014`.
 
-## v0.5.0 — next-pester ordering
+## ✅ v0.5.0 — next-pester ordering
 
-- Track each task’s next pester time.
-- Order the inbox by overdue tasks (past the X pester count), snoozed tasks (status snoozed), today tasks (any task with a status upcoming and date todays date), then future tasks (any task with a status of upcoming and the date beyond today).
-	- Create sections on the home screen for these groups
-	- Add some color indicator next to each (overdue=red; snoozed=purple; today=green; future=gray)
-- Show the next pester time clearly for each task.
-- Recalculate ordering after completion, snooze, editing, and a delivered notification.
-- Prevent stale or duplicate notification schedules when task timing changes.
+- ✅ Track each task’s next pester time.
+- ✅ Order the inbox by pestering tasks (active and overdue), snoozed tasks, today tasks (upcoming and due today), then future tasks (upcoming and due after today).
+	- ✅ Create sections on the home screen for these groups, plus Unscheduled tasks.
+	- ✅ Add a color indicator next to each (pestering=red; snoozed=purple; today=green; future and unscheduled=gray).
+- ✅ Move completed tasks out of the inbox into a dedicated Completed screen.
+- ✅ Show the next pester time clearly for each task.
+- ✅ Recalculate ordering after completion, snooze, editing, and a delivered notification.
+- ✅ Prevent stale or duplicate notification schedules when task timing changes.
+
+Implemented and verified on the physical iPhone in build `0.5.0-0018`. Active and overdue tasks appear under Pestering, Today contains only upcoming tasks due today, and completed tasks appear on a dedicated screen reached from the bottom of the inbox. Store refreshes are coalesced so section changes do not repeatedly update navigation within one display frame.
 
 ## v0.6.0 — polish and stability
 
 - Polish the inbox, task creation, editing, and notification flows.
 - Prevent title-only edits from changing a task's lifecycle or notification timing.
 - Add colors to overdue, upcoming, active
-- Create a hidden section of completed tasks
 - Improve empty, permission-denied, and scheduling-error states.
 - Verify Dynamic Type, accessibility labels, and common screen sizes.
 - Test repeated launches, edits, completion, snoozing, and notification actions.

@@ -65,6 +65,7 @@ final class TaskStore: ObservableObject {
     private let defaults = UserDefaults.standard
     private let tasksKey = "pester.v04.tasks"
     private let migrationKey = "pester.v04.migratedLegacyTasks"
+    private var refreshTask: Task<Void, Never>?
 
     private init() {
         if let data = defaults.data(forKey: tasksKey),
@@ -99,7 +100,7 @@ final class TaskStore: ObservableObject {
             createdAt: now,
             updatedAt: now
         ))
-        task.onChange = { [weak self] in self?.save() }
+        attach(task)
         tasks.append(task)
         save()
         await task.schedule(at: dueAt)
@@ -118,8 +119,23 @@ final class TaskStore: ObservableObject {
     }
 
     private func attachPersistence() {
-        for task in tasks {
-            task.onChange = { [weak self] in self?.save() }
+        for task in tasks { attach(task) }
+    }
+
+    private func attach(_ task: PesterTask) {
+        task.onChange = { [weak self] in
+            self?.save()
+            self?.scheduleRefresh()
+        }
+    }
+
+    private func scheduleRefresh() {
+        refreshTask?.cancel()
+        refreshTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 20_000_000)
+            guard !Task.isCancelled else { return }
+            self?.objectWillChange.send()
+            self?.refreshTask = nil
         }
     }
 
@@ -350,6 +366,7 @@ final class PesterTask: ObservableObject, Identifiable {
         pesterCount = Self.batchCount
         status = "Pester count reset from \(reason). Leave Pester to restart at 1/\(Self.batchCount)."
         record("Pester count reset from \(reason); waiting for app to leave foreground.")
+        onChange?()
     }
 
     private func updateStatus() async {
@@ -395,6 +412,7 @@ final class PesterTask: ObservableObject, Identifiable {
             pesterCount = 0
             status = "Not started. No alerts are scheduled."
         }
+        onChange?()
     }
 
     func start(snoozing: Bool = false) async {

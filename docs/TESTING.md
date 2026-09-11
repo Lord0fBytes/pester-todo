@@ -1,6 +1,40 @@
 # Pester testing
 
-This is the physical-device test checklist. The current development build is `0.4.2-0014`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current tested build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+
+## v0.5.0 inbox grouping and ordering
+
+- [x] Launch Pester from Xcode with several tasks in different states, then background and reopen it several times.
+  - *Expect* no `NavigationRequestObserver tried to update multiple times per frame` warning. Expect every section and NavigationLink to remain responsive.
+  - *User notes:* Build `0.5.0-0015` logged the warning on its first physical-phone run.
+  - *User notes 2:* Confirmed after fix ✅
+- [x] Create tasks due today and on a future date, then keep one completed or Not scheduled task.
+  - *Expect* nonempty inbox sections to appear in this order: Pestering, Snoozed, Today, Future, Unscheduled. Active and Overdue tasks belong to Pestering. Only Upcoming tasks due today belong to Today. Completed tasks do not appear among the inbox task sections.
+  - *User notes:* ✅
+- [x] Check the section indicators in light and dark appearance.
+  - *Expect* Pestering to use red, Snoozed purple, Today green, and Future and Unscheduled gray. Text and state icons must remain readable without relying on section color alone.
+  - *User notes:* ✅
+- [x] Create at least three Today tasks and three Future tasks in a deliberately mixed order.
+  - *Expect* each section to sort by the task's next pester or scheduled time, earliest first. Tasks with identical times should sort by title.
+  - *User notes:* ✅
+- [x] Snooze an active Pestering task.
+  - *Expect* it to move immediately from Pestering into Snoozed and sort by its fixed snooze deadline. Other task schedules must remain unchanged.
+  - *User notes:* ✅
+- [x] Let a snoozed task reach its deadline and begin pestering, then open Pester.
+  - *Expect* it to move from Snoozed to Pestering and show the correct next pester time.
+  - *User notes:* ok great all the sorting and grouping is working. ✅
+- [x] Let a task exhaust all eight notifications, then open Pester.
+  - *Expect* it to appear in Pestering with an Overdue row status while Pester is open, then restart at Pester 1/8 when leaving the app according to the established overdue-reset behavior.
+  - *User notes:* ✅
+- [x] Complete, reschedule, and delete tasks from different sections.
+  - *Expect* each affected task to move or disappear immediately, with no duplicate row or stale section. Unrelated tasks and notification schedules must remain unchanged.
+  - *User notes:* ✅ partial tested. Will continue testing this in real world use.
+- [x] Change the timing of an upcoming task.
+  - *Expect* it to move between Today and Future when appropriate, sort at its new time, and produce notifications only from the replacement schedule.
+  - *User notes:* ok great all the sorting and grouping is working. ✅
+- [x] Complete a task, then open the Completed row at the bottom of the inbox.
+  - *Expect* the completed task to disappear from the inbox sections immediately. Expect the Completed row to show the total count and open a dedicated screen where completed tasks are sorted by most recently completed first and remain tappable.
+  - *User notes:* ok great all the sorting and grouping is working. ✅
 
 ## v0.4.2 deletion controls
 
@@ -290,3 +324,4 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-11 | 0.4.1-0010 | Snoozed and active next-pester display | Passed on physical iPhone; times update correctly and scheduling behavior remains correct | — |
 | 2026-09-11 | 0.4.2-0011 | Swipe Delete confirmation | Middle-row deletion caused an optimistic row removal and list redraw before confirmation; the last row hid the effect because nothing followed it | Remove the destructive swipe role while retaining red styling and confirmed deletion |
 | 2026-09-11 | 0.4.2-0014 | Task deletion controls | Passed on physical iPhone; confirmation no longer redraws the list and the selected-row highlight is clear | — |
+| 2026-09-11 | 0.5.0-0018 | Inbox grouping and next-pester ordering | Passed on physical iPhone; section grouping, ordering, and completed-task separation work as expected | — |
