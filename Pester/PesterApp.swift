@@ -31,41 +31,58 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         // the app remains open, reset that task and arm it for the next exit.
         completionHandler([])
         Task { @MainActor in
-            await PesterTest.test(for: notification.request)?.notificationSuppressedInForeground(notification.request)
+            await PesterTask.task(for: notification.request)?.notificationSuppressedInForeground(notification.request)
         }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         Task { @MainActor in
             defer { completionHandler() }
-            await PesterTest.test(for: response.notification.request)?.handle(response)
+            await PesterTask.task(for: response.notification.request)?.handle(response)
         }
     }
 }
 
 @MainActor
-final class PesterTest: ObservableObject {
+final class PesterTask: ObservableObject, Identifiable {
+    enum TaskState: String {
+        case notScheduled = "Not scheduled"
+        case upcoming = "Upcoming"
+        case active = "Active"
+        case snoozed = "Snoozed"
+        case overdue = "Overdue"
+        case completed = "Completed"
+    }
+
     private enum LifecycleState: String {
         case idle
         case active
         case upcoming
+        case snoozed
         case pausedWhileOpen
         case completed
     }
 
     static let batchCount = 8
-    static let tests = [PesterTest(id: "a", name: "Reminder A", defaultInterval: 1),
-                        PesterTest(id: "b", name: "Reminder B", defaultInterval: 2)]
-    static func test(for request: UNNotificationRequest) -> PesterTest? {
-        tests.first { $0.id == request.content.userInfo["testID"] as? String }
+    static let tasks = [
+        PesterTask(id: UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!, storageID: "a", title: "Reminder A", defaultInterval: 1),
+        PesterTask(id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!, storageID: "b", title: "Reminder B", defaultInterval: 2)
+    ]
+
+    static func task(for request: UNNotificationRequest) -> PesterTask? {
+        let payload = request.content.userInfo
+        return tasks.first {
+            $0.id.uuidString == payload["taskID"] as? String || $0.storageID == payload["testID"] as? String
+        }
     }
-    let id: String
-    let name: String
-    private var allIDs: [String] { (1...Self.batchCount).map { "pester.v02.\(id).\($0)" } }
-    private var generationKey: String { "pester.v02.\(id).generation" }
-    private var logKey: String { "pester.v02.\(id).events" }
-    private var stateKey: String { "pester.v02.\(id).state" }
-    private var scheduledStartKey: String { "pester.v03.\(id).scheduledStart" }
+    let id: UUID
+    let title: String
+    private let storageID: String
+    private var allIDs: [String] { (1...Self.batchCount).map { "pester.v02.\(storageID).\($0)" } }
+    private var generationKey: String { "pester.v02.\(storageID).generation" }
+    private var logKey: String { "pester.v02.\(storageID).events" }
+    private var stateKey: String { "pester.v02.\(storageID).state" }
+    private var scheduledStartKey: String { "pester.v03.\(storageID).scheduledStart" }
     @Published private(set) var busy = false
     @Published private(set) var active = false
     @Published private(set) var status = "Ready."
@@ -74,24 +91,29 @@ final class PesterTest: ObservableObject {
     @Published private(set) var pesterMinutes: Int
     @Published private(set) var snoozeMinutes: Int
     @Published private(set) var scheduledStart: Date?
+    @Published private(set) var state: TaskState = .notScheduled
+    @Published private(set) var nextPesterAt: Date?
+    @Published private(set) var pesterCount = 0
+    let maxPesterCount = PesterTask.batchCount
 
-    private init(id: String, name: String, defaultInterval: Int) {
+    private init(id: UUID, storageID: String, title: String, defaultInterval: Int) {
         self.id = id
-        self.name = name
+        self.storageID = storageID
+        self.title = title
         let defaults = UserDefaults.standard
-        let interval = defaults.integer(forKey: "pester.v02.\(id).interval")
-        let snooze = defaults.integer(forKey: "pester.v02.\(id).snooze")
+        let interval = defaults.integer(forKey: "pester.v02.\(storageID).interval")
+        let snooze = defaults.integer(forKey: "pester.v02.\(storageID).snooze")
         pesterMinutes = (1...60).contains(interval) ? interval : defaultInterval
         snoozeMinutes = (1...60).contains(snooze) ? snooze : 3
-        events = defaults.stringArray(forKey: "pester.v02.\(id).events") ?? []
-        scheduledStart = defaults.object(forKey: "pester.v03.\(id).scheduledStart") as? Date
+        events = defaults.stringArray(forKey: "pester.v02.\(storageID).events") ?? []
+        scheduledStart = defaults.object(forKey: "pester.v03.\(storageID).scheduledStart") as? Date
     }
 
     private func saveSettings(interval: Int, snooze: Int) {
         pesterMinutes = interval
         snoozeMinutes = snooze
-        UserDefaults.standard.set(interval, forKey: "pester.v02.\(id).interval")
-        UserDefaults.standard.set(snooze, forKey: "pester.v02.\(id).snooze")
+        UserDefaults.standard.set(interval, forKey: "pester.v02.\(storageID).interval")
+        UserDefaults.standard.set(snooze, forKey: "pester.v02.\(storageID).snooze")
     }
 
     private var lifecycleState: LifecycleState {
@@ -110,8 +132,9 @@ final class PesterTest: ObservableObject {
         await serially {
             let pending = await self.center.pendingNotificationRequests()
             if pending.contains(where: { self.allIDs.contains($0.identifier) }) {
-                let futureStart = self.lifecycleState == .upcoming ? self.scheduledStart : nil
-                await self.installBatch(snoozing: false, interval: interval, snooze: snooze, scheduledFor: futureStart)
+                let isUpcoming = self.lifecycleState == .upcoming || self.lifecycleState == .snoozed
+                let futureStart = isUpcoming ? self.scheduledStart : nil
+                await self.installBatch(snoozing: self.lifecycleState == .snoozed, interval: interval, snooze: snooze, scheduledFor: futureStart)
             } else {
                 self.saveSettings(interval: interval, snooze: snooze)
                 await self.updateStatus()
@@ -149,7 +172,7 @@ final class PesterTest: ObservableObject {
             let hasLifecycle = UserDefaults.standard.string(forKey: self.generationKey) != nil
             let state = self.lifecycleState
 
-            if state == .upcoming, !pending.isEmpty {
+            if (state == .upcoming || state == .snoozed), !pending.isEmpty {
                 if let start = self.scheduledStart, start <= Date() {
                     self.lifecycleState = .active
                     self.record("Scheduled start reached; active pester count preserved.")
@@ -205,13 +228,16 @@ final class PesterTest: ObservableObject {
         lifecycleState = .pausedWhileOpen
         setScheduledStart(nil)
         active = true
+        state = .overdue
+        nextPesterAt = nil
+        pesterCount = Self.batchCount
         status = "Pester count reset from \(reason). Leave Pester to restart at 1/\(Self.batchCount)."
         record("Pester count reset from \(reason); waiting for app to leave foreground.")
     }
 
     private func updateStatus() async {
         let requests = await pendingRequests()
-        if lifecycleState == .upcoming,
+        if (lifecycleState == .upcoming || lifecycleState == .snoozed),
            let start = scheduledStart,
            start <= Date(),
            !requests.isEmpty {
@@ -220,17 +246,36 @@ final class PesterTest: ObservableObject {
         let state = lifecycleState
         active = !requests.isEmpty || state == .pausedWhileOpen
         let dates = requests.compactMap { ($0.trigger as? UNTimeIntervalNotificationTrigger)?.nextTriggerDate() }.sorted()
+        nextPesterAt = dates.first
+        pesterCount = min(Self.batchCount, max(0, Self.batchCount - requests.count))
         if state == .pausedWhileOpen {
+            self.state = .overdue
             status = "Pester count reset. Leave Pester to restart at 1/\(Self.batchCount)."
         } else if let next = dates.first, let end = dates.last {
-            let label = state == .upcoming ? "Upcoming" : "Active"
+            let label: String
+            if state == .snoozed {
+                self.state = .snoozed
+                label = "Snoozed"
+            } else if state == .upcoming {
+                self.state = .upcoming
+                label = "Upcoming"
+            } else {
+                self.state = .active
+                label = "Active"
+            }
             status = "\(label): \(requests.count) pending. Next expected: \(next.formatted(date: .omitted, time: .standard)). Last scheduled: \(end.formatted(date: .omitted, time: .standard))."
         } else if UserDefaults.standard.string(forKey: generationKey) != nil, state != .completed {
             active = true
+            self.state = .overdue
+            pesterCount = Self.batchCount
             status = "Overdue: all \(Self.batchCount) pester notifications were exhausted. Open Pester to reset."
         } else if state == .completed {
+            self.state = .completed
+            pesterCount = 0
             status = "Completed. No alerts remain scheduled."
         } else {
+            self.state = .notScheduled
+            pesterCount = 0
             status = "Not started. No alerts are scheduled."
         }
     }
@@ -298,29 +343,32 @@ final class PesterTest: ObservableObject {
             replacing = true
             UserDefaults.standard.set(generation, forKey: generationKey)
             let firstFireDate = scheduledFor ?? Date().addingTimeInterval(TimeInterval((snoozing ? snooze : interval) * 60))
-            lifecycleState = (snoozing || scheduledFor != nil) ? .upcoming : .active
+            lifecycleState = snoozing ? .snoozed : (scheduledFor != nil ? .upcoming : .active)
             setScheduledStart(firstFireDate)
             for (index, id) in self.allIDs.enumerated() {
                 let content = UNMutableNotificationContent()
                 let count = index + 1
-                content.title = "\(name) · Pester \(count)/\(self.allIDs.count)"
+                content.title = "\(title) · Pester \(count)/\(self.allIDs.count)"
                 content.body = "Pester count \(count) of \(self.allIDs.count). Complete to stop, or snooze for \(snooze) minutes."
                 content.sound = .default
                 content.categoryIdentifier = "pester.test"
                 content.threadIdentifier = "pester.test.\(self.id)"
-                content.userInfo = ["generation": generation, "testID": self.id]
+                content.userInfo = ["generation": generation, "taskID": self.id.uuidString, "testID": self.storageID]
                 let fireDate = firstFireDate.addingTimeInterval(TimeInterval(index * interval * 60))
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, fireDate.timeIntervalSinceNow), repeats: false)
                 try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
             }
             saveSettings(interval: interval, snooze: snooze)
             await updateStatus()
-            if let scheduledFor {
+            if snoozing {
+                record("Snoozed \(snooze) min; then every \(interval) min.")
+                status = "Snoozed for \(snooze) minutes. " + status
+            } else if let scheduledFor {
                 record("Scheduled for \(scheduledFor.formatted(date: .abbreviated, time: .shortened)); then every \(interval) min.")
                 status = "Future batch scheduled. " + status
             } else {
-                record(snoozing ? "Snoozed \(snooze) min; then every \(interval) min." : "Started \(Self.batchCount) alerts, every \(interval) min.")
-                status = (snoozing ? "Snoozed for \(snooze) minutes. " : "Batch scheduled. ") + status
+                record("Started \(Self.batchCount) alerts, every \(interval) min.")
+                status = "Batch scheduled. " + status
             }
             if settings.alertSetting != .enabled || settings.authorizationStatus == .provisional {
                 status += " Alerts may be quiet or disabled; check Settings."
@@ -351,7 +399,7 @@ final class PesterTest: ObservableObject {
         lifecycleState = .completed
         setScheduledStart(nil)
         await updateStatus()
-        status = active ? "A test is still pending. Try Complete again." : "Completed. No test alerts remain scheduled."
+        status = active ? "A notification is still pending. Try Complete again." : "Completed. No task alerts remain scheduled."
         record(status)
     }
 
@@ -385,9 +433,9 @@ final class PesterTest: ObservableObject {
         if handledLifecycleAction { await Self.resetOtherOverdueTasks(excluding: id) }
     }
 
-    private static func resetOtherOverdueTasks(excluding id: String) async {
-        for test in tests where test.id != id {
-            await test.resetIfOverdue()
+    private static func resetOtherOverdueTasks(excluding id: UUID) async {
+        for task in tasks where task.id != id {
+            await task.resetIfOverdue()
         }
     }
 

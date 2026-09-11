@@ -30,7 +30,7 @@ Pester is a focused native iPhone app: persistent reminders that keep pestering 
 - Notification content is delivered by iOS; the app can receive callbacks for custom actions, opening a notification, and some explicit dismissals. It cannot infer that a person merely saw or read an alert, and a banner swipe/reveal is not guaranteed to produce a dismissal callback.
 - Dismissal is not completion. Clearing an alert should not stop pestering; Complete and Snooze are the explicit lifecycle actions.
 - Local notification delivery is best effort and platform-controlled. A successful schedule or pending-request snapshot does not prove presentation, sound, smartwatch forwarding, or exact timing.
-- v0.1.0 and v0.2.0 are committed and merged into `main`. The current development branch is `0.3.0`.
+- v0.1.0 through v0.3.1 are complete and merged into `main`. Build `0.3.1-0005` is the current physically tested release.
 - When the app opens, only overdue tasks reset. Active tasks keep their current pester count and pending notifications. Upcoming future-scheduled or snoozed tasks retain their upcoming state and schedule. Completed tasks remain completed.
 - The app-open lifecycle event is confirmed in testing: each reminder log records `App opened — reset check`.
 - Completing or snoozing a notification resets other overdue tasks only. Active and upcoming tasks keep their pending notifications and counts; completed tasks remain completed. The triggering task follows its explicit Complete or Snooze transition.
@@ -84,7 +84,7 @@ Check current official documentation rather than relying on remembered platform 
 
 ## Repository setup status
 
-- Working branch: `0.3.0`; two independent test reminders A/B, default pester intervals 1/2 minutes, default snooze 3 minutes.
+- Current release: `0.3.1-0005`; two independent task objects A/B, default pester intervals 1/2 minutes, default snooze 3 minutes.
 - Each reminder has saved pester/snooze settings (1–60 minutes), a separate 8-request batch, generation token, and local diagnostic log. Notification text includes the pester count for debugging.
 - Debug notification text currently includes the pester count, such as `Pester 1/8`, so reset behavior can be observed on the phone and third-party smartwatch. This is temporary diagnostic presentation, not the intended final notification copy.
 - Saving edited settings replaces only that reminder's pending batch if active, restarting its countdown. Inactive reminders save settings without starting. Complete/Snooze actions target one reminder via payload ID; stale batch actions are ignored.
@@ -92,11 +92,15 @@ Check current official documentation rather than relying on remembered platform 
 - Foreground alerts are suppressed without resetting active tasks. If the final scheduled alert is exhausted while Pester is visible, the now-overdue task resets and waits for the app to leave.
 - Complete and Snooze operate on their associated task and reset any other overdue tasks. Other active, upcoming, and completed tasks and notifications remain unchanged.
 - Launch removes obsolete v0.1 test requests. v0.2 schedules/settings survive app relaunch via iOS pending requests and UserDefaults. These are experiment settings, not the future task database.
-- Build `0.3.0-0004` adds a future date/time picker, persisted first-fire time, per-reminder rescheduling, and schedule deletion. A future batch starts at the chosen time and uses the configured pester duration for its remaining alerts. Unsigned iPhone build passes; physical-device testing is pending.
+- Build `0.3.0-0004` added future date/time scheduling, persisted first-fire times, per-reminder rescheduling, and schedule deletion. Its future scheduling and lifecycle behavior passed physical-iPhone testing.
+- Build `0.3.1-0005` promotes each reminder controller to a UUID-backed `PesterTask`. The root screen presents tappable task rows with state and next-pester summaries; each detail screen contains the task properties, schedule, durations, actions, status, and diagnostics. Existing storage keys and legacy notification payload IDs remain supported so v0.3.0 schedules survive the upgrade. The UI and notification regressions passed physical-iPhone testing.
+- `PesterTask` is the current task domain boundary and owns its notification behavior. Notification requests remain an internal scheduling detail; a separately persisted `NotificationSchedule` entity is deferred until storage requirements in the inbox milestone justify it.
+- The public task states are Not scheduled, Upcoming, Active, Snoozed, Overdue, and Completed. State rows pair text with SF Symbols so meaning does not depend on color alone.
+- The accepted navigation pattern is a compact task list with state and next-pester summaries, followed by a native detail screen for task properties and actions.
 - Notification categories request Complete, Snooze, app-open, and explicit-dismiss callbacks. Swipe-dismiss logging remains unconfirmed; no read receipt or unattended delivery callback is inferred.
 - Signing uses Xcode automatic signing with the existing project team configuration.
-- `docs/ROADMAP.md` is the user-authored milestone plan. v0.3.0 covers future scheduling; the inbox, backend/API, and MCP remain out of scope for this iteration.
-- Build identification uses `MARKETING_VERSION` for the release (currently `0.3.0`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `4`). The app displays them as `0.3.0-0004`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
+- `docs/ROADMAP.md` is the user-authored milestone plan. v0.3.1 is complete; v0.4.0 is the next planned milestone and introduces the full task inbox and local task persistence.
+- Build identification uses `MARKETING_VERSION` for the release (currently `0.3.1`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `5`). The app displays them as `0.3.1-0005`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
 
 ## v0.1.0 completion
 

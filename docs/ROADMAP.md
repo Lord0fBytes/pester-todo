@@ -24,14 +24,24 @@ Pester is a focused reminder app built around one behavior: a task keeps pesteri
 
 ## v0.3.0 — scheduled future tasks
 
-- 🚧 Add the ability to schedule a task for a future date and time.
-- 🚧 Show the scheduled date and time clearly in the task view.
-- 🚧 Ensure a future task does not pester before its scheduled time.
-- 🚧 Persist future task schedules across app launches and device restarts.
-- 🚧 Allow a future task to be edited, completed, snoozed, or deleted before it becomes due.
-- Verify future scheduling on the physical iPhone.
+- ✅ Add the ability to schedule a task for a future date and time.
+- ✅ Show the scheduled date and time clearly in the task view.
+- ✅ Ensure a future task does not pester before its scheduled time.
+- ✅ Persist future task schedules across app launches and device restarts.
+- ✅ Allow a future task to be edited, completed, snoozed, or deleted before it becomes due.
+- ✅ Verify future scheduling on the physical iPhone.
 
-Implementation is present in build `0.3.0-0004` and awaits physical-device testing.
+Completed and verified on the physical iPhone in build `0.3.0-0004`.
+
+## v0.3.1 — task detail cleanup
+
+- ✅ Present reminders as tappable task rows.
+- ✅ Move task properties, scheduling controls, actions, and diagnostics into a task detail screen.
+- ✅ Give each task a stable UUID and a user-facing task state.
+- ✅ Preserve existing schedules and settings while moving from the test-reminder model to `PesterTask`.
+- ✅ Verify navigation, state updates, notification actions, Dynamic Type, and light/dark appearance on the physical iPhone.
+
+Completed and verified on the physical iPhone in build `0.3.1-0005`.
 
 ## v0.4.0 — task inbox
 

@@ -1,33 +1,49 @@
 # Pester testing
 
-This is the physical-device test checklist. The current development build is `0.3.0-0004`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current development build is `0.3.1-0005`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+
+## v0.3.1 task list and detail
+
+- ✅ Confirm the home screen shows Reminder A and Reminder B as tappable rows.
+- ✅ Confirm each row shows its state and, when scheduled, its next pester date/time.
+- ✅ Tap each task and confirm the detail screen shows title, state, pester count, next pester, schedule, durations, actions, status, task ID, and interaction log.
+- ✅ Schedule or reschedule a task from its detail screen, then return to the list.
+  - Expect the row to update without restarting the app.
+- ✅ Start, snooze, complete, and delete schedules from the detail screen.
+  - Expect the task state and row summary to match each action.
+- ✅ Upgrade with an existing `0.3.0-0004` schedule still pending.
+  - Expect the existing schedule, settings, actions, and logs to remain usable.
+- ✅ Complete and snooze from a notification created by `0.3.1-0005`.
+  - Expect the action to find the correct UUID-backed task and preserve the other task.
+- ✅ Check the list and detail screens in light and dark appearance.
+- ✅ Increase Dynamic Type and confirm task rows, labels, dates, buttons, and logs remain readable without horizontal clipping.
 
 ## v0.3.0 future scheduling
 
-- [ ] Schedule Reminder A several minutes in the future.
+- ✅ Schedule Reminder A several minutes in the future.
   - Expect its exact future date and time to appear as Upcoming.
   - Expect no A notification before that time.
   - Expect `Pester 1/8` at the scheduled time, followed by alerts at the selected pester duration.
-- [ ] Close Pester, reopen it before A is due, and close it again.
+- ✅ Close Pester, reopen it before A is due, and close it again.
   - Expect the same scheduled time to remain visible and no early alert.
-- [ ] Force-quit Pester before A is due.
+- ✅ Force-quit Pester before A is due.
   - Expect the scheduled notification to arrive without reopening the app.
-- [ ] Restart the iPhone before A is due.
+- ✅ Restart the iPhone before A is due.
   - Expect the schedule and selected time to survive and the notification to arrive.
-- [ ] Reschedule A to a different future time.
+- ✅ Reschedule A to a different future time.
   - Expect only the new A schedule to fire; no alert should arrive at the old time.
   - Expect Reminder B to remain unchanged.
-- [ ] Change A's durations while it is upcoming.
+- ✅ Change A's durations while it is upcoming.
   - Expect A to retain its chosen first-fire time and use the new pester duration after that.
-- [ ] Snooze A before its scheduled time.
+- ✅ Snooze A before its scheduled time.
   - Expect the original future schedule to be replaced by a snooze starting from now.
-- [ ] Complete A before its scheduled time.
+- ✅ Complete A before its scheduled time.
   - Expect no A alerts and a Completed state.
-- [ ] Schedule A again, then use Delete schedule before it is due.
+- ✅ Schedule A again, then use Delete schedule before it is due.
   - Expect no A alerts and a Not started state.
-- [ ] Schedule A and B for separate future times, then edit or delete A.
+- ✅ Schedule A and B for separate future times, then edit or delete A.
   - Expect B's date, pending count, and notifications to remain unchanged.
-- [ ] Keep Pester open when a future schedule becomes due.
+- ✅ Keep Pester open when a future schedule becomes due.
   - Expect its banner and sound to be suppressed while the remaining batch stays active.
 
 ## Basic scheduling
@@ -58,10 +74,10 @@ This is the physical-device test checklist. The current development build is `0.
   - Expect no A alert during the snooze duration.
   - Expect A to restart at `Pester 1/8` afterward.
 - ✅ Snooze A from inside the app and repeat the same test.
-- [ ] Snooze A while B is active.
+- ✅ Snooze A while B is active.
   - Expect B's pending notifications and pester count to continue unchanged.
   - Earlier build reset/cleared B; regression test the revised task isolation.
-- [ ] Let B exhaust `8/8`, then snooze A from its notification.
+- ✅ Let B exhaust `8/8`, then snooze A from its notification.
   - Expect overdue B to restart at `Pester 1/8`.
   - Reported failure before the overdue-only cross-task reset was implemented: B did not restart.
 
@@ -70,10 +86,10 @@ This is the physical-device test checklist. The current development build is `0.
 - ✅ Let A reach a visible count, then complete it from the notification.
   - Expect no further A alerts.
 - ✅ Reopen Pester and confirm A has no pending notifications.
-- [ ] Complete A while B is active.
+- ✅ Complete A while B is active.
   - Expect B's pending notifications and pester count to continue unchanged.
   - Earlier build reset/cleared B; regression test the revised task isolation.
-- [ ] Let B exhaust `8/8`, then complete A from its notification.
+- ✅ Let B exhaust `8/8`, then complete A from its notification.
   - Expect overdue B to restart at `Pester 1/8`.
 - ✅ Start a newer batch, then use Complete on an old notification.
   - Expect the old action not to affect the newer schedule.
@@ -93,7 +109,7 @@ These are intended product behaviors; failures should become implementation task
   - Intended: it becomes overdue.
 - ✅ Open Pester after it becomes overdue.
   - Intended: it resets and begins again at `Pester 1/8`.
-- [ ] Snooze a task, then open Pester before the snooze ends.
+- ✅ Snooze a task, then open Pester before the snooze ends.
   - Intended: it remains upcoming and does not start pestering early.
 - ✅ Complete a task, reopen Pester, and wait.
   - Intended: it remains completed and sends no alerts.
@@ -114,8 +130,9 @@ These are intended product behaviors; failures should become implementation task
   - Check for an “Opened app” entry in the interaction log.
 - ✅ Use Complete and Snooze from the expanded notification.
   - Check that each action is logged.
-- [ ] Swipe left and tap Clear.
+- ✅ Swipe left and tap Clear.
   - Check whether a dismissal entry appears.
+  - Result: no dismissal callback was observed; clearing an alert remains separate from Complete and Snooze.
 - ✅ View or read a notification without acting.
   - Confirm that no read event is claimed.
 
@@ -128,4 +145,5 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-10 | v0.1.0 | Snooze and Complete | Passed | — |
 | 2026-09-10 | v0.1.0 | Notifications after killing app | Passed | — |
 | 2026-09-10 | v0.2.0 | Two independent schedules | Passed by user | Add detailed counter/reset results |
-| 2026-09-10 | 0.3.0-0004 | Future scheduling | Awaiting physical-device test | Test the v0.3.0 checklist above |
+| 2026-09-10 | 0.3.0-0004 | Future scheduling | Passed on physical iPhone | — |
+| 2026-09-10 | 0.3.1-0005 | Task list and detail | Passed on physical iPhone | — |
