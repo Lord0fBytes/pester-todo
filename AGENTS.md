@@ -136,7 +136,7 @@ Check current official documentation rather than relying on remembered platform 
 - Notification categories request Complete, Snooze, app-open, and explicit-dismiss callbacks. Swipe-dismiss logging remains unconfirmed; no read receipt or unattended delivery callback is inferred.
 - Signing uses Xcode automatic signing with the existing project team configuration.
 - `docs/ROADMAP.md` is the user-authored milestone plan. v0.5.0 is complete and verified on the physical iPhone.
-- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.2`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `41`). The app displays them as `0.6.2-0041`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
+- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.2`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `42`). The app displays them as `0.6.2-0042`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
 
 ## v0.1.0 completion
 
