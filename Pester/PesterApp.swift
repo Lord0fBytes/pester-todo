@@ -508,8 +508,8 @@ final class PesterTask: ObservableObject, Identifiable {
         for request in await pendingRequests() {
             guard let fireDate = scheduledFireDate(for: request), fireDate > Date() else { continue }
             let content = UNMutableNotificationContent()
-            content.title = title
-            content.body = ""
+            content.title = "Pester"
+            content.body = title
             content.sound = request.content.sound
             content.categoryIdentifier = request.content.categoryIdentifier
             content.threadIdentifier = request.content.threadIdentifier
@@ -581,8 +581,8 @@ final class PesterTask: ObservableObject, Identifiable {
                 let content = UNMutableNotificationContent()
                 let count = index + 1
                 let fireDate = firstFireDate.addingTimeInterval(TimeInterval(index * interval * 60))
-                content.title = title
-                content.body = ""
+                content.title = "Pester"
+                content.body = title
                 content.sound = .default
                 content.categoryIdentifier = "pester.test"
                 content.threadIdentifier = "pester.test.\(self.id)"
