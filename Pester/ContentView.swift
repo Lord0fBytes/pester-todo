@@ -70,10 +70,11 @@ struct ContentView: View {
                                 ForEach(section.tasks) { task in
                                 Button {
                                     selectedTask = task
-                                } label: {
-                                    TaskRow(task: task, tint: section.kind.rowTint(for: task))
-                                }
+                                    } label: {
+                                        TaskRow(task: task, tint: section.kind.rowTint(for: task))
+                                    }
                                     .buttonStyle(.plain)
+                                    .contentShape(Rectangle())
                                     .listRowBackground(
                                         taskToDelete?.id == task.id
                                             ? Color.red.opacity(0.12)
