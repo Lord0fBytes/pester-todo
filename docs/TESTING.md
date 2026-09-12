@@ -1,6 +1,48 @@
 # Pester testing
 
-This is the physical-device test checklist. The current development build is `0.6.0-0020`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current development build is `0.6.1-0033`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+
+## v0.6.1 task details sheet
+
+Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate. The content direction remains useful, but the sheet needs another design pass before the checklist below is run. Build `0.6.1-0033` is the latest unaccepted prototype: its normal sheet uses a shorter detent, 53-point icon-only action controls with neutral circular borders and exact visible hit areas, plus a single bordered title/due card whose title editor is limited to the padded title text. It retains the prior bell/timer duration menus and remains open for visual review before device testing.
+
+- [ ] Review the overall task-details composition before functional device testing.
+  - *Expect* a focused, lightweight surface that presents only the task information and controls needed for this interaction.
+  - *User notes:* hmm it doesnt looks right. I think you are to context heavy.
+  - *User notes:* hmm not quite. It's definitely getting better, but looks weird; here's my observations:
+    1. Action buttons are too tall (need more spacing at the top.
+    2. Can the half sheet be smaller? There is a lot of empty space now.
+    3. The title and date dont look like they fit I am thinking of borders and the date will ahve a grayer box behind it. See picture:
+    4. The duration row just looks weird still. Still thinking of a better solution. Maybe just leave it until the above are handled.
+    5. I dont like the color behing the action buttons. Just use the default color of the button and the icon be the only color.
+
+- [ ] Tap tasks from Pestering, Upcoming, and Completed.
+  - *Expect* each task to open in a compact, 340-point bottom sheet with a visible drag indicator. Expect the sheet to expand to full height when dragged and dismiss with the in-sheet Close control or a downward gesture.
+  - *User notes:*
+- [ ] Review an Active, Snoozed, Overdue, Upcoming, and Completed task in the sheet.
+  - *Expect* a concise action bar first, with lifecycle actions when applicable plus Delete and Close, followed by title, original due timestamp, pester duration, and snooze duration. Next-pester time, lifecycle status, pester count, task ID, and interaction log should not appear.
+  - *User notes:*
+- [ ] Review an active task without scrolling the sheet.
+  - *Expect* evenly spaced icon-only Complete, Snooze, Delete, and Close controls with generous top spacing. Complete uses a green checkmark, Snooze a blue moon, Delete a red trash can, and Close a subdued gray X; all icons sit inside subtle neutral circular outlines with no colored fills, and Delete still requires confirmation.
+  - *User notes:*
+- [ ] Open both duration menus.
+  - *Expect* a bell for Pester and timer for Snooze with compact current minute values below them, and exactly 1, 2, 3, 4, 5, 10, 15, 20, 30, 45, and 60 minute choices. Selecting a value saves that property immediately and updates only that task’s notification schedule.
+  - *User notes:*
+- [ ] Use Snooze and Complete from the details sheet.
+  - *Expect* the action to affect only that task, dismiss the sheet, and move the task to its correct inbox or Completed location.
+  - *User notes:*
+- [ ] Tap the title, edit it directly in the task sheet, and save it without changing the due date.
+  - *Expect* a focused Edit Title mode with Cancel and Save. Saving updates the title in the app and remaining notifications without changing task state, next-alert time, pester count, or pending notification timing. Cancel discards the draft.
+  - *User notes:*
+- [ ] Tap the due date, choose a future date and time, and save it.
+  - *Expect* a focused Reschedule mode containing only date and time controls with Cancel and Set. Set reschedules that task and leaves unrelated tasks unchanged; Cancel preserves the old schedule.
+  - *User notes:*
+- [ ] Start Delete task from the sheet, cancel once, then confirm it.
+  - *Expect* the short confirmation to omit the potentially long task title. Cancel keeps the task; confirmation removes the task and its notifications and dismisses the sheet.
+  - *User notes:*
+- [ ] Repeat the sheet tests in light and dark appearance and with larger Dynamic Type.
+  - *Expect* readable values, 44-point controls, visible menu selections, and no clipped or hidden actions at either sheet height.
+  - *User notes:*
 
 ## v0.6.0 finalized inbox grouping
 
@@ -346,3 +388,11 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-11 | 0.4.2-0011 | Swipe Delete confirmation | Middle-row deletion caused an optimistic row removal and list redraw before confirmation; the last row hid the effect because nothing followed it | Remove the destructive swipe role while retaining red styling and confirmed deletion |
 | 2026-09-11 | 0.4.2-0014 | Task deletion controls | Passed on physical iPhone; confirmation no longer redraws the list and the selected-row highlight is clear | — |
 | 2026-09-11 | 0.5.0-0018 | Inbox grouping and next-pester ordering | Passed on physical iPhone; section grouping, ordering, and completed-task separation work as expected | — |
+| 2026-09-11 | 0.6.1-0026 | Task-details visual review | Unresolved; the prototype does not look right and feels too context-heavy | Redesign the composition collaboratively before physical-device testing |
+| 2026-09-11 | 0.6.1-0027 | Icon-first task-details prototype | Simulator build and visual check passed; action bar, title/due hierarchy, and duration menus are functional | Keep the design unaccepted until the user reviews its labels, value treatment, and overall feel |
+| 2026-09-11 | 0.6.1-0028 | Task-details spacing and surface refinement | Build-valid; simulator review pending | Keep the duration row unchanged while reviewing the shorter sheet, icon-only actions, title border, and gray due surface |
+| 2026-09-11 | 0.6.1-0029 | Stacked title and due card | Build-valid; simulator review pending | Compare the stacked title/due treatment against the supplied reference; leave duration unchanged |
+| 2026-09-11 | 0.6.1-0030 | Action-button affordance | Build-valid; simulator review pending | Review the subtle neutral circular borders around the colored action icons |
+| 2026-09-11 | 0.6.1-0031 | Action-control size | Build-valid; simulator review pending | Review the 48-point controls against the prior 44-point treatment |
+| 2026-09-11 | 0.6.1-0032 | Action and title hit areas | Build-valid; simulator review pending | Verify taps in visual spacing do not trigger action controls or title editing |
+| 2026-09-11 | 0.6.1-0033 | Action-control size refinement | Build-valid; simulator review pending | Review the 53-point controls against the prior 48-point treatment |
