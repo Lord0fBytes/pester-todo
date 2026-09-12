@@ -1,6 +1,6 @@
 # Pester testing
 
-This is the physical-device test checklist. The current development build is `0.6.1-0045`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current development build is `0.6.1-0046`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
 
 ## v0.6.1 task details sheet
 
@@ -35,7 +35,10 @@ Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate.
   - *Expect* a focused Edit Title mode with Cancel and Save. Saving updates the title in the app and remaining notifications without changing task state, next-alert time, pester count, or pending notification timing. Cancel discards the draft.
   - *User notes:*
 - [ ] Tap the due date, choose a future date and time, and save it.
-  - *Expect* a focused Reschedule mode containing only date and time controls with Cancel and Set. Set reschedules that task and leaves unrelated tasks unchanged; Cancel preserves the old schedule.
+  - *Expect* a focused Reschedule mode containing only date and time controls with Cancel and Set. The time control offers only five-minute values (for example, :00, :05, :10, and :15). Set reschedules that task and leaves unrelated tasks unchanged; Cancel preserves the old schedule.
+  - *User notes:*
+- [ ] Create a new task and edit an existing task through the standard task form.
+  - *Expect* both Due controls offer only five-minute values. A new task’s initial due time rounds up to the next five-minute boundary; saving either form preserves the chosen five-minute due time.
   - *User notes:*
 - [ ] Start Delete task from the sheet, cancel once, then confirm it.
   - *Expect* the short confirmation to omit the potentially long task title. Cancel keeps the task; confirmation removes the task and its notifications and dismisses the sheet.
