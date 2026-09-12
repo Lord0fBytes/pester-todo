@@ -46,6 +46,9 @@ Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate.
 
 ## v0.6.0 finalized inbox grouping
 
+- [x] Tap the visible and blank areas of an inbox task row, including the space immediately before the chevron.
+  - *Expect* the entire row opens that task without interfering with its swipe actions.
+  - *User notes:* ok perfect. That tested good.
 - [ ] Open Pester with Overdue, Active, Snoozed, Upcoming-today, and Upcoming-future tasks.
   - *Expect* only Pestering and Upcoming task-section headers. Pestering contains Overdue, Active, and Snoozed tasks. Upcoming contains both tasks due today and tasks due later. There should be no separate Snoozed, Today, Future, or Unscheduled header.
   - *User notes:*
@@ -403,3 +406,4 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-11 | 0.6.1-0037 | Inbox headspace reduction | Build-valid; simulator review pending | Review the navigation-bar title placement and reduced top spacing |
 | 2026-09-12 | 0.6.1-0044 | Consolidated development build | Simulator build passed; physical-iPhone testing pending | Validate task-row/title-card hit areas, completed-task controls, and notification hierarchy together |
 | 2026-09-12 | 0.6.1-0045 | Task-row hit-area follow-up | Simulator build passed; physical-iPhone testing pending | Verify blank space across each inbox row opens that task |
+| 2026-09-12 | 0.6.1-0045 | Task-row hit area | Passed on physical iPhone | — |
