@@ -84,6 +84,8 @@ struct ContentView: View {
                                     selectedTask = task
                                 } label: {
                                     TaskRow(task: task, tint: section.kind.rowTint(for: task))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .contentShape(Rectangle())
                                 }
                                     .buttonStyle(.plain)
                                 .contentShape(Rectangle())
@@ -356,6 +358,8 @@ private struct TaskRow: View {
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }
