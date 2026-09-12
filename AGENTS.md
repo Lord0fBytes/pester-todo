@@ -101,6 +101,7 @@ Check current official documentation rather than relying on remembered platform 
 - Build `0.6.1-0030` adds subtle neutral circular borders to the icon-only action controls so their tappable affordance is visible while the icons remain the only colored elements. This remains an unaccepted, simulator-validated proposal.
 - Build `0.6.1-0031` increases the visible outlined action controls from 44 to 48 points (about 9%) while retaining their existing spacing and semantics. This remains an unaccepted, simulator-validated proposal.
 - Build `0.6.1-0032` limits action hits to each visible 48-point circle and title editing to the padded title text, leaving the visual spacing and unused title-card surface noninteractive. This remains an unaccepted, simulator-validated proposal.
+- Build `0.6.2-0041` supersedes the title-hit boundary from `0032`: the complete title-card surface is interactive so an accidental tap target does not confuse users. This remains an unaccepted, simulator-validated proposal.
 - Build `0.6.1-0033` increases the visible outlined action controls from 48 to 53 points, another approximately 10% increase, while retaining exact visible hit areas. This remains an unaccepted, simulator-validated proposal.
 - The current prototype's title-only save updates pending notification titles while preserving identifiers, fire times, pester count, and lifecycle. Its duration choices are 1, 2, 3, 4, 5, 10, 15, 20, 30, 45, and 60 minutes. These functional behaviors are implemented, but their presentation remains open with the rest of the task-details redesign.
 - Current physically tested release: `0.5.0-0018`. v0.5.0 inbox grouping and next-pester ordering are complete and merged into `main`.
@@ -135,7 +136,7 @@ Check current official documentation rather than relying on remembered platform 
 - Notification categories request Complete, Snooze, app-open, and explicit-dismiss callbacks. Swipe-dismiss logging remains unconfirmed; no read receipt or unattended delivery callback is inferred.
 - Signing uses Xcode automatic signing with the existing project team configuration.
 - `docs/ROADMAP.md` is the user-authored milestone plan. v0.5.0 is complete and verified on the physical iPhone.
-- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.1`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `33`). The app displays them as `0.6.1-0033`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
+- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.2`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `41`). The app displays them as `0.6.2-0041`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
 
 ## v0.1.0 completion
 
