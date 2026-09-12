@@ -1,6 +1,6 @@
 # Pester testing
 
-This is the physical-device test checklist. The current development build is `0.6.2-0042`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current development build is `0.6.3-0043`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
 
 ## v0.6.1 task details sheet
 
@@ -33,6 +33,9 @@ Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate.
   - *User notes:*
 - [ ] Tap anywhere in the title-card surface, edit the title directly in the task sheet, and save it without changing the due date.
   - *Expect* a focused Edit Title mode with Cancel and Save. Saving updates the title in the app and remaining notifications without changing task state, next-alert time, pester count, or pending notification timing. Cancel discards the draft.
+  - *User notes:*
+- [ ] Schedule a task, then rename it while notifications remain pending.
+  - *Expect* each notification to show `Pester` as its title and the current task name as its body. Renaming updates the body of remaining notifications without changing task state, timing, or pester count.
   - *User notes:*
 - [ ] Tap the due date, choose a future date and time, and save it.
   - *Expect* a focused Reschedule mode containing only date and time controls with Cancel and Set. Set reschedules that task and leaves unrelated tasks unchanged; Cancel preserves the old schedule.
@@ -396,4 +399,5 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-11 | 0.6.1-0031 | Action-control size | Build-valid; simulator review pending | Review the 48-point controls against the prior 44-point treatment |
 | 2026-09-11 | 0.6.1-0032 | Action and title hit areas | Build-valid; simulator review pending | Verify taps in visual spacing do not trigger action controls or title editing |
 | 2026-09-12 | 0.6.2-0041 | Title-card hit area | Build-valid; simulator review pending | Verify the full title-card surface opens title editing without affecting the due-date control |
+| 2026-09-12 | 0.6.3-0043 | Notification hierarchy | Build-valid; physical-device review pending | Verify `Pester` title and task-name body for new and renamed pending notifications |
 | 2026-09-11 | 0.6.1-0033 | Action-control size refinement | Build-valid; simulator review pending | Review the 53-point controls against the prior 48-point treatment |

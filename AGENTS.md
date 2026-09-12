@@ -121,8 +121,8 @@ Check current official documentation rather than relying on remembered platform 
 - Delete Schedule was observed to remove a task from the inbox even though the test expected it to retain a Not scheduled task; this needs reproduction. A full-swipe deletion passed, but the row temporarily disappeared and returned while its confirmation dialog was shown.
 - Tasks persist as a Codable JSON collection in UserDefaults for this milestone. On the first 0.4 launch, the store migrates the legacy Reminder A/B controllers into UUID-backed records while retaining their existing notification keys, settings, schedules, and logs.
 - `TaskStore` owns the task collection and resolves notification actions to dynamically created tasks. `PesterTask` remains the task domain boundary and owns each task's notification behavior.
-- Each task has saved pester/snooze settings (1–60 minutes), a separate 8-request batch, generation token, and local diagnostic log. Notification text includes the pester count for debugging.
-- Debug notification text currently includes the pester count, such as `Pester 1/8`, so reset behavior can be observed on the phone and third-party smartwatch. This is temporary diagnostic presentation, not the intended final notification copy.
+- Each task has saved pester/snooze settings (1–60 minutes), a separate 8-request batch, generation token, and local diagnostic log. Pester counts remain available in internal diagnostics.
+- Notification presentation uses `Pester` as the notification title and the task name as its body. The pester count and snooze guidance are not user-facing notification text.
 - Saving edited settings replaces only that reminder's pending batch if active, restarting its countdown. Inactive reminders save settings without starting. Complete/Snooze actions target one reminder via payload ID; stale batch actions are ignored.
 - Opening the app preserves active schedules and resets only overdue tasks. A reset overdue task waits until the app enters the background before installing a fresh `1/8` batch. Upcoming snoozed schedules and completed tasks are preserved.
 - Foreground alerts are suppressed without resetting active tasks. If the final scheduled alert is exhausted while Pester is visible, the now-overdue task resets and waits for the app to leave.
@@ -136,7 +136,7 @@ Check current official documentation rather than relying on remembered platform 
 - Notification categories request Complete, Snooze, app-open, and explicit-dismiss callbacks. Swipe-dismiss logging remains unconfirmed; no read receipt or unattended delivery callback is inferred.
 - Signing uses Xcode automatic signing with the existing project team configuration.
 - `docs/ROADMAP.md` is the user-authored milestone plan. v0.5.0 is complete and verified on the physical iPhone.
-- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.2`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `42`). The app displays them as `0.6.2-0042`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
+- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.3`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `43`). The app displays them as `0.6.3-0043`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
 
 ## v0.1.0 completion
 
