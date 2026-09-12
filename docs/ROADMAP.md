@@ -102,7 +102,7 @@ Implemented in build `0.6.0-0020` and validated in the simulator; broader physic
 - 🚧 Present the sheet as a compact task inspector with a top action bar (Complete/Snooze when applicable, Delete, and Close), followed by tappable title and due timestamp, then pester and snooze durations. Do not show next-pester or lifecycle status in the details sheet.
 - 🚧 Replace minute-by-minute steppers with menu choices for 1, 2, 3, 4, 5, 10, 15, 20, 30, 45, and 60 minutes.
 - 🚧 Give title and due-date edits their own focused Cancel/Save or Cancel/Set modes. Save duration-menu selections immediately and keep Close stable in the normal inspector.
-- Use five-minute increments in the in-app due-time picker while preserving support for precise times supplied by future API or AI integrations.
+- 🚧 Use five-minute increments in the in-app due-time picker while preserving support for precise times supplied by future API or AI integrations.
 - Polish the inbox, task creation, editing, and notification flows.
 - 🚧 Prevent title-only edits from changing a task's lifecycle or notification timing.
 
@@ -131,6 +131,8 @@ Build `0.6.1-0035` reverts that task-title treatment after clarifying that the r
 Build `0.6.1-0036` experiments with a centered all-caps rounded inbox title and a muted, centered explanatory surface.
 
 Build `0.6.1-0037` moves the inbox title into the navigation bar to reduce top headspace.
+
+Build `0.6.1-0046` uses the native iOS time picker with five-minute increments for task creation and both editing surfaces. New-task defaults round up to the next five-minute boundary. Simulator validation passed; physical-iPhone testing is pending.
 
 ## v0.6.x — remaining polish and stability
 

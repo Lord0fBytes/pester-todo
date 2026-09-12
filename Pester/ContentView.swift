@@ -364,6 +364,94 @@ private struct TaskRow: View {
     }
 }
 
+private enum DueTime {
+    static let minuteInterval = 5
+
+    static func roundedUp(_ date: Date) -> Date {
+        let interval = TimeInterval(minuteInterval * 60)
+        return Date(timeIntervalSinceReferenceDate: ceil(date.timeIntervalSinceReferenceDate / interval) * interval)
+    }
+
+    static func defaultDueDate(from now: Date = Date()) -> Date {
+        roundedUp(now.addingTimeInterval(5 * 60))
+    }
+
+    static func earliestDueDate(from now: Date = Date()) -> Date {
+        roundedUp(now.addingTimeInterval(60))
+    }
+}
+
+private struct FiveMinuteDatePicker: UIViewRepresentable {
+    @Binding var selection: Date
+    let minimumDate: Date
+    let mode: UIDatePicker.Mode
+
+    func makeUIView(context: Context) -> UIDatePicker {
+        let picker = UIDatePicker()
+        picker.datePickerMode = mode
+        picker.minuteInterval = DueTime.minuteInterval
+        picker.minimumDate = minimumDate
+        picker.preferredDatePickerStyle = .compact
+        picker.addTarget(context.coordinator, action: #selector(Coordinator.dateChanged(_:)), for: .valueChanged)
+        return picker
+    }
+
+    func updateUIView(_ picker: UIDatePicker, context: Context) {
+        picker.minimumDate = minimumDate
+        let roundedSelection = DueTime.roundedUp(max(selection, minimumDate))
+        if abs(picker.date.timeIntervalSince(roundedSelection)) > 0.5 {
+            picker.setDate(roundedSelection, animated: false)
+        }
+        if abs(selection.timeIntervalSince(roundedSelection)) > 0.5 {
+            DispatchQueue.main.async {
+                selection = roundedSelection
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    final class Coordinator: NSObject {
+        private let parent: FiveMinuteDatePicker
+
+        init(_ parent: FiveMinuteDatePicker) {
+            self.parent = parent
+        }
+
+        @objc func dateChanged(_ picker: UIDatePicker) {
+            let roundedSelection = DueTime.roundedUp(max(picker.date, parent.minimumDate))
+            if abs(picker.date.timeIntervalSince(roundedSelection)) > 0.5 {
+                picker.setDate(roundedSelection, animated: true)
+            }
+            parent.selection = roundedSelection
+        }
+    }
+}
+
+private struct FiveMinuteDatePickerRow: View {
+    let title: String
+    @Binding var selection: Date
+    let minimumDate: Date
+    let mode: UIDatePicker.Mode
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer(minLength: 12)
+            FiveMinuteDatePicker(
+                selection: $selection,
+                minimumDate: minimumDate,
+                mode: mode
+            )
+            .frame(width: mode == .dateAndTime ? 220 : 100, height: 44)
+            .accessibilityLabel(title)
+        }
+        .frame(minHeight: 44)
+    }
+}
+
 private struct TaskDetailsSheet: View {
     private enum EditorMode: Equatable {
         case title
@@ -387,7 +475,7 @@ private struct TaskDetailsSheet: View {
         self.task = task
         self.store = store
         _titleDraft = State(initialValue: task.title)
-        _dueDateDraft = State(initialValue: task.dueAt ?? task.scheduledStart ?? Date().addingTimeInterval(5 * 60))
+        _dueDateDraft = State(initialValue: DueTime.roundedUp(task.dueAt ?? task.scheduledStart ?? DueTime.defaultDueDate()))
         _pesterMinutes = State(initialValue: task.pesterMinutes)
         _snoozeMinutes = State(initialValue: task.snoozeMinutes)
     }
@@ -414,14 +502,14 @@ private struct TaskDetailsSheet: View {
             DatePicker(
                 "Date",
                 selection: $dueDateDraft,
-                in: Date()...,
+                in: DueTime.earliestDueDate()...,
                 displayedComponents: .date
             )
-            DatePicker(
-                "Time",
+            FiveMinuteDatePickerRow(
+                title: "Time",
                 selection: $dueDateDraft,
-                in: Date()...,
-                displayedComponents: .hourAndMinute
+                minimumDate: DueTime.earliestDueDate(),
+                mode: .time
             )
         } header: {
             Text("Choose a new due date")
@@ -607,8 +695,8 @@ private struct TaskDetailsSheet: View {
     }
 
     private func beginDueDateEditing() {
-        let earliest = Date().addingTimeInterval(60)
-        dueDateDraft = max(task.dueAt ?? task.scheduledStart ?? earliest, earliest)
+        let earliest = DueTime.earliestDueDate()
+        dueDateDraft = DueTime.roundedUp(max(task.dueAt ?? task.scheduledStart ?? earliest, earliest))
         editorMode = .dueDate
     }
 
@@ -642,11 +730,11 @@ private struct TaskDetailsSheet: View {
             await store.update(
                 task,
                 title: task.title,
-                dueAt: dueDateDraft,
+                dueAt: DueTime.roundedUp(dueDateDraft),
                 pesterMinutes: task.pesterMinutes,
                 snoozeMinutes: task.snoozeMinutes
             )
-            dueDateDraft = task.dueAt ?? dueDateDraft
+            dueDateDraft = DueTime.roundedUp(task.dueAt ?? dueDateDraft)
             saving = false
             editorMode = nil
         }
@@ -774,9 +862,9 @@ private struct TaskEditorSheet: View {
     init(store: TaskStore, task: PesterTask? = nil) {
         self.store = store
         self.task = task
-        let earliest = Date().addingTimeInterval(60)
+        let earliest = DueTime.earliestDueDate()
         _title = State(initialValue: task?.title ?? "")
-        _dueAt = State(initialValue: max(task?.dueAt ?? task?.scheduledStart ?? Date().addingTimeInterval(5 * 60), earliest))
+        _dueAt = State(initialValue: DueTime.roundedUp(max(task?.dueAt ?? task?.scheduledStart ?? DueTime.defaultDueDate(), earliest)))
         _pesterMinutes = State(initialValue: task?.pesterMinutes ?? 5)
         _snoozeMinutes = State(initialValue: task?.snoozeMinutes ?? 15)
     }
@@ -791,11 +879,11 @@ private struct TaskEditorSheet: View {
                 Section("Task") {
                     TextField("Title", text: $title)
                         .textInputAutocapitalization(.sentences)
-                    DatePicker(
-                        "Due",
+                    FiveMinuteDatePickerRow(
+                        title: "Due",
                         selection: $dueAt,
-                        in: Date()...,
-                        displayedComponents: [.date, .hourAndMinute]
+                        minimumDate: DueTime.earliestDueDate(),
+                        mode: .dateAndTime
                     )
                 }
 
@@ -834,14 +922,14 @@ private struct TaskEditorSheet: View {
                 await store.update(
                     task,
                     title: title,
-                    dueAt: dueAt,
+                    dueAt: DueTime.roundedUp(dueAt),
                     pesterMinutes: pesterMinutes,
                     snoozeMinutes: snoozeMinutes
                 )
             } else {
                 await store.create(
                     title: title,
-                    dueAt: dueAt,
+                    dueAt: DueTime.roundedUp(dueAt),
                     pesterMinutes: pesterMinutes,
                     snoozeMinutes: snoozeMinutes
                 )
