@@ -4,7 +4,7 @@ This is the physical-device test checklist. The current development build is `0.
 
 ## v0.6.1 task details sheet
 
-Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate. The content direction remains useful, but the sheet needs another design pass before the checklist below is run. Build `0.6.1-0044` is the latest unaccepted prototype: it includes the inbox-title refinements through `0037`, 53-point icon-only action controls with neutral circular borders and exact visible hit areas, plus a single bordered title/due card whose full title surface opens the title editor. It retains the prior bell/timer duration menus and remains open for visual review before device testing.
+Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate. The content direction remains useful, but the sheet needs another design pass before the checklist below is run. Build `0.6.1-0044` includes the inbox-title refinements through `0037`, 53-point icon-only action controls with neutral circular borders and exact visible hit areas, plus a single bordered title/due card whose full title surface opens the title editor. Build `0.6.1-0046` adds five-minute due-time controls for new tasks and editing; the visual composition remains open for review before device testing.
 
 - [ ] Review the overall task-details composition before functional device testing.
   - *Expect* a focused, lightweight surface that presents only the task information and controls needed for this interaction.
