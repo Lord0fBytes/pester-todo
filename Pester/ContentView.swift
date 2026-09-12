@@ -70,6 +70,7 @@ struct ContentView: View {
                                 NavigationLink(value: task.id) {
                                     TaskRow(task: task, tint: section.kind.rowTint(for: task))
                                 }
+                                .contentShape(Rectangle())
                                     .listRowBackground(
                                         taskToDelete?.id == task.id
                                             ? Color.red.opacity(0.12)
