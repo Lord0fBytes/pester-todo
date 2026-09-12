@@ -108,6 +108,7 @@ Check current official documentation rather than relying on remembered platform 
 - Build `0.6.1-0036` applies that intended inbox-title experiment: a centered all-caps rounded Pester heading and a centered muted explanatory surface. This is a simulator-only visual proposal, not accepted design.
 - Build `0.6.1-0037` moves the centered all-caps rounded inbox title into the navigation bar, removing excess list headspace while retaining the explanatory surface below it. This is a simulator-only visual proposal, not accepted design.
 - Build `0.6.1-0044` is the consolidated development build: it combines the task-row hit target, title-card hit target, completed-task duration visibility, notification hierarchy, and time-picker roadmap work. Physical-iPhone testing remains pending.
+- Build `0.6.1-0045` moves the task-row hit region into the button label itself and explicitly gives it the full row width, addressing physical testing that found the outer button modifier insufficient. Physical-iPhone verification remains pending.
 - The current prototype's title-only save updates pending notification titles while preserving identifiers, fire times, pester count, and lifecycle. Its duration choices are 1, 2, 3, 4, 5, 10, 15, 20, 30, 45, and 60 minutes. These functional behaviors are implemented, but their presentation remains open with the rest of the task-details redesign.
 - Current physically tested release: `0.5.0-0018`. v0.5.0 inbox grouping and next-pester ordering are complete and merged into `main`.
 - The v0.5 inbox uses ordered, nonempty sections: Pestering, Snoozed, Today, Future, then Unscheduled. Pestering contains Active and Overdue tasks. Today contains only Upcoming tasks due today. Completed tasks are hidden from the inbox sections and available through a dedicated Completed screen at the bottom of the inbox.
@@ -141,7 +142,7 @@ Check current official documentation rather than relying on remembered platform 
 - Notification categories request Complete, Snooze, app-open, and explicit-dismiss callbacks. Swipe-dismiss logging remains unconfirmed; no read receipt or unattended delivery callback is inferred.
 - Signing uses Xcode automatic signing with the existing project team configuration.
 - `docs/ROADMAP.md` is the user-authored milestone plan. v0.5.0 is complete and verified on the physical iPhone.
-- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.1`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `44`). The app displays them as `0.6.1-0044`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
+- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.1`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `45`). The app displays them as `0.6.1-0045`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
 
 ## v0.1.0 completion
 

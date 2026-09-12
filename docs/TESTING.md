@@ -1,6 +1,6 @@
 # Pester testing
 
-This is the physical-device test checklist. The current development build is `0.6.1-0044`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current development build is `0.6.1-0045`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
 
 ## v0.6.1 task details sheet
 
@@ -402,3 +402,4 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-11 | 0.6.1-0036 | Inbox title and description experiment | Build-valid; simulator review pending | Review the centered all-caps rounded title and muted centered description surface |
 | 2026-09-11 | 0.6.1-0037 | Inbox headspace reduction | Build-valid; simulator review pending | Review the navigation-bar title placement and reduced top spacing |
 | 2026-09-12 | 0.6.1-0044 | Consolidated development build | Simulator build passed; physical-iPhone testing pending | Validate task-row/title-card hit areas, completed-task controls, and notification hierarchy together |
+| 2026-09-12 | 0.6.1-0045 | Task-row hit-area follow-up | Simulator build passed; physical-iPhone testing pending | Verify blank space across each inbox row opens that task |
