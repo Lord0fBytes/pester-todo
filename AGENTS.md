@@ -88,7 +88,7 @@ Check current official documentation rather than relying on remembered platform 
 
 ## Repository setup status
 
-- Build `0.6.0-0020` is the finalized-inbox-grouping checkpoint and awaits physical-iPhone testing. Development is on branch `0.6.1`; build `0.6.1-0033` is an uncommitted, build-valid task-details prototype.
+- Build `0.6.0-0020` is the finalized-inbox-grouping checkpoint and awaits physical-iPhone testing. The task-details work continues on `feature/0.6.1-task-details`; build `0.6.1-0037` is a build-valid prototype.
 - The v0.6 inbox has two task sections: Pestering contains Overdue, Active, and Snoozed; Upcoming contains future-scheduled tasks due today or later. Completed remains on its dedicated screen. The Pestering label is a presentation group and does not mean a Snoozed task is actively sending notifications.
 - Pestering sorts first by state priority (Overdue, Active, Snoozed), then by the next pester or snooze deadline, then by creation time oldest first. Upcoming sorts by next pester time and then creation time oldest first.
 - Upcoming rows due today use a green clock. Later Upcoming rows retain the blue clock. Their status and displayed date continue to communicate meaning without relying only on color.
@@ -102,6 +102,10 @@ Check current official documentation rather than relying on remembered platform 
 - Build `0.6.1-0031` increases the visible outlined action controls from 44 to 48 points (about 9%) while retaining their existing spacing and semantics. This remains an unaccepted, simulator-validated proposal.
 - Build `0.6.1-0032` limits action hits to each visible 48-point circle and title editing to the padded title text, leaving the visual spacing and unused title-card surface noninteractive. This remains an unaccepted, simulator-validated proposal.
 - Build `0.6.1-0033` increases the visible outlined action controls from 48 to 53 points, another approximately 10% increase, while retaining exact visible hit areas. This remains an unaccepted, simulator-validated proposal.
+- Build `0.6.1-0034` uses a centered all-caps rounded display treatment for the title while keeping its tap target limited to the title itself. The due-date surface remains open for a separate polish direction.
+- Build `0.6.1-0035` reverts the `0034` task-title treatment: that change was based on a misunderstanding of feedback intended for the inbox title and description. The task-details title returns to its prior leading title style; inbox-title polish remains a separate open direction.
+- Build `0.6.1-0036` applies that intended inbox-title experiment: a centered all-caps rounded Pester heading and a centered muted explanatory surface. This is a simulator-only visual proposal, not accepted design.
+- Build `0.6.1-0037` moves the centered all-caps rounded inbox title into the navigation bar, removing excess list headspace while retaining the explanatory surface below it. This is a simulator-only visual proposal, not accepted design.
 - The current prototype's title-only save updates pending notification titles while preserving identifiers, fire times, pester count, and lifecycle. Its duration choices are 1, 2, 3, 4, 5, 10, 15, 20, 30, 45, and 60 minutes. These functional behaviors are implemented, but their presentation remains open with the rest of the task-details redesign.
 - Current physically tested release: `0.5.0-0018`. v0.5.0 inbox grouping and next-pester ordering are complete and merged into `main`.
 - The v0.5 inbox uses ordered, nonempty sections: Pestering, Snoozed, Today, Future, then Unscheduled. Pestering contains Active and Overdue tasks. Today contains only Upcoming tasks due today. Completed tasks are hidden from the inbox sections and available through a dedicated Completed screen at the bottom of the inbox.

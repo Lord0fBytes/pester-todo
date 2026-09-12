@@ -121,6 +121,14 @@ Build `0.6.1-0032` limits interaction to visible action circles and the padded t
 
 Build `0.6.1-0033` increases the visible action-control circles from 48 to 53 points.
 
+Build `0.6.1-0034` gives the title a centered, all-caps rounded display style; due-date surface polish remains open.
+
+Build `0.6.1-0035` reverts that task-title treatment after clarifying that the requested app-title work applies to the inbox rather than the task-details card.
+
+Build `0.6.1-0036` experiments with a centered all-caps rounded inbox title and a muted, centered explanatory surface.
+
+Build `0.6.1-0037` moves the inbox title into the navigation bar to reduce top headspace.
+
 ## v0.6.x — remaining polish and stability
 
 - Add colors to overdue, upcoming, active

@@ -50,7 +50,19 @@ struct ContentView: View {
                 List {
                     Section {
                         Text("Choose a task to view its schedule, durations, actions, and activity.")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(3)
+                            .frame(maxWidth: .infinity)
+                            .padding(16)
+                            .background(
+                                Color(uiColor: .tertiarySystemFill),
+                                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            )
+                        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
                     if store.tasks.isEmpty {
                         Section("Tasks") {
@@ -141,8 +153,15 @@ struct ContentView: View {
                     .accessibilityLabel("App version \(appVersion)")
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Pester")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Pester")
+                        .font(.system(.title2, design: .rounded).weight(.heavy))
+                        .textCase(.uppercase)
+                        .tracking(0.8)
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         showingNewTask = true

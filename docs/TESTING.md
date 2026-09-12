@@ -4,7 +4,7 @@ This is the physical-device test checklist. The current development build is `0.
 
 ## v0.6.1 task details sheet
 
-Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate. The content direction remains useful, but the sheet needs another design pass before the checklist below is run. Build `0.6.1-0033` is the latest unaccepted prototype: its normal sheet uses a shorter detent, 53-point icon-only action controls with neutral circular borders and exact visible hit areas, plus a single bordered title/due card whose title editor is limited to the padded title text. It retains the prior bell/timer duration menus and remains open for visual review before device testing.
+Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate. The content direction remains useful, but the sheet needs another design pass before the checklist below is run. Build `0.6.1-0037` is the latest unaccepted prototype: it includes the inbox-title refinements through `0037`, 53-point icon-only action controls with neutral circular borders and exact visible hit areas, plus a single bordered title/due card whose title editor is limited to the padded title text. It retains the prior bell/timer duration menus and remains open for visual review before device testing.
 
 - [ ] Review the overall task-details composition before functional device testing.
   - *Expect* a focused, lightweight surface that presents only the task information and controls needed for this interaction.
@@ -396,3 +396,7 @@ These are intended product behaviors; failures should become implementation task
 | 2026-09-11 | 0.6.1-0031 | Action-control size | Build-valid; simulator review pending | Review the 48-point controls against the prior 44-point treatment |
 | 2026-09-11 | 0.6.1-0032 | Action and title hit areas | Build-valid; simulator review pending | Verify taps in visual spacing do not trigger action controls or title editing |
 | 2026-09-11 | 0.6.1-0033 | Action-control size refinement | Build-valid; simulator review pending | Review the 53-point controls against the prior 48-point treatment |
+| 2026-09-11 | 0.6.1-0034 | Title display treatment | Build-valid; simulator review pending | Review the centered all-caps rounded title and decide the due-surface hierarchy separately |
+| 2026-09-11 | 0.6.1-0035 | Task-title treatment correction | Build-valid; simulator review pending | Reverted `0034`; the requested title/description polish applies to the inbox |
+| 2026-09-11 | 0.6.1-0036 | Inbox title and description experiment | Build-valid; simulator review pending | Review the centered all-caps rounded title and muted centered description surface |
+| 2026-09-11 | 0.6.1-0037 | Inbox headspace reduction | Build-valid; simulator review pending | Review the navigation-bar title placement and reduced top spacing |
