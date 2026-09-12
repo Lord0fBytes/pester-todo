@@ -1,6 +1,6 @@
 # Pester testing
 
-This is the physical-device test checklist. The current development build is `0.6.1-0046`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the historical physical-device test checklist and results reference. The current development build is `0.6.1-0046`; the latest completed build is `0.5.0-0018`. For new work, record test plans, device details, results, screenshots, and follow-up directly on the relevant GitHub issue rather than updating this file.
 
 ## v0.6.1 task details sheet
 

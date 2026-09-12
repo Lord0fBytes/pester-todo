@@ -95,6 +95,8 @@ Implemented and verified on the physical iPhone in build `0.5.0-0018`. Active an
 
 Implemented in build `0.6.0-0020` and validated in the simulator; broader physical-iPhone testing is pending.
 
+Tracking: [#10 — physical-iPhone inbox validation](https://github.com/Lord0fBytes/pester-todo/issues/10).
+
 ## v0.6.1 — task detail redesign
 
 - 🚧 Replace full-screen task navigation with a compact native bottom sheet that can expand when needed.
@@ -134,14 +136,15 @@ Build `0.6.1-0037` moves the inbox title into the navigation bar to reduce top h
 
 Build `0.6.1-0046` uses the native iOS time picker with five-minute increments for task creation and both editing surfaces. New-task defaults round up to the next five-minute boundary. Simulator validation passed; physical-iPhone testing is pending.
 
+Tracking: [#11 — physical-iPhone task-details and due-time-picker validation](https://github.com/Lord0fBytes/pester-todo/issues/11).
+
 ## v0.6.x — remaining polish and stability
 
-- Add colors to overdue, upcoming, active
-- Improve empty, permission-denied, and scheduling-error states.
-- Verify Dynamic Type, accessibility labels, and common screen sizes.
-- Test repeated launches, edits, completion, snoozing, and notification actions.
-- Test locked, backgrounded, offline, force-quit, and reboot scenarios on the physical iPhone.
-- Resolve crashes, duplicate alerts, stale alerts, and persistence errors.
+- [#12 — define state-color treatment](https://github.com/Lord0fBytes/pester-todo/issues/12) before adding colors to overdue, upcoming, and active tasks.
+- [#13 — improve empty, permission-denied, and scheduling-error states](https://github.com/Lord0fBytes/pester-todo/issues/13).
+- [#14 — validate Dynamic Type, accessibility labels, and common screen sizes](https://github.com/Lord0fBytes/pester-todo/issues/14).
+- [#15 — validate lifecycle and notification behavior on a physical iPhone](https://github.com/Lord0fBytes/pester-todo/issues/15): repeated launches, edits, completion, snoozing, notification actions, locked/backgrounded/offline/force-quit/reboot scenarios.
+- Resolve crashes, duplicate alerts, stale alerts, and persistence errors through separate reproducible `bug` issues as they are found.
 
 ## v1.0.0 — initial release
 
@@ -164,6 +167,8 @@ Begin testing external control after the local app is stable:
 - Test creating a task from outside the iPhone app.
 - Investigate how the phone learns about externally created tasks while the app is closed.
 - Keep this experimental until synchronization and notification delivery behavior are understood.
+
+Tracking: [#16 — external task creation while the iPhone app is closed](https://github.com/Lord0fBytes/pester-todo/issues/16).
 
 ## v2.0.0 — API release
 

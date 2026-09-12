@@ -83,7 +83,8 @@ Check current official documentation rather than relying on remembered platform 
 - Make small, verifiable changes and keep this file updated as decisions are confirmed.
 - Clearly distinguish implemented behavior, proposed design, and platform assumptions awaiting validation.
 - Do not build the full app/backend ahead of the notification proof of concept unless the user changes the scope.
-- Format new `docs/TESTING.md` cases as a checkbox followed by italicized `Expect` and `User notes` entries. Preserve the user's notes verbatim when recording results, and leave unresolved observations open until they are discussed or reproduced.
+- GitHub Issues are the source of truth for new bugs, features, test plans, device-test results, screenshots, and follow-up discussion. Start new work from an issue whenever practical; post the build number, device context, commands run, and observed result in issue comments. Preserve the user's notes verbatim in those comments and leave unresolved observations open until they are discussed or reproduced.
+- `docs/TESTING.md` is a historical checklist and results reference. Do not add new ongoing test notes or results there; link or refer to the relevant GitHub issue instead.
 - During the v0.6 UI work, collaborate on the overall look and future implications before implementing loosely formed ideas. Treat simulator prototypes as proposals until the user explicitly accepts their look and feel; record rejected iterations without promoting them to confirmed design.
 
 ## Repository setup status
