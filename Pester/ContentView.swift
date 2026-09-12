@@ -428,7 +428,9 @@ private struct TaskDetailsSheet: View {
                     .font(.title2.weight(.bold))
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(20)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Edit title, \(task.title)")
