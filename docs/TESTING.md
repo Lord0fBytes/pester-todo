@@ -1,10 +1,10 @@
 # Pester testing
 
-This is the historical physical-device test checklist and results reference. The current development build is `0.6.1-0046`; the latest completed build is `0.5.0-0018`. For new work, record test plans, device details, results, screenshots, and follow-up directly on the relevant GitHub issue rather than updating this file.
+This is the historical physical-device test checklist and results reference. The current development build is `0.6.1-0046`; `main` remains the last release branch at `0.5.0-0018`. GitHub issues [#10](https://github.com/Lord0fBytes/pester-todo/issues/10), [#11](https://github.com/Lord0fBytes/pester-todo/issues/11), and [#15](https://github.com/Lord0fBytes/pester-todo/issues/15) are the completed v0.6 physical-validation records; the older checklist markers below are not a current status source. For new work, record test plans, device details, results, screenshots, and follow-up directly on the relevant GitHub issue rather than updating this file.
 
 ## v0.6.1 task details sheet
 
-Build `0.6.1-0026` is a visual prototype rather than an accepted test candidate. The content direction remains useful, but the sheet needs another design pass before the checklist below is run. Build `0.6.1-0044` includes the inbox-title refinements through `0037`, 53-point icon-only action controls with neutral circular borders and exact visible hit areas, plus a single bordered title/due card whose full title surface opens the title editor. Build `0.6.1-0046` adds five-minute due-time controls for new tasks and editing; the visual composition remains open for review before device testing.
+Build `0.6.1-0026` through `0.6.1-0046` record the task-details redesign progression. Build `0.6.1-0046` adds five-minute due-time controls for new tasks and editing. The physical-iPhone validation record is closed in GitHub issue [#11](https://github.com/Lord0fBytes/pester-todo/issues/11).
 
 - [ ] Review the overall task-details composition before functional device testing.
   - *Expect* a focused, lightweight surface that presents only the task information and controls needed for this interaction.
