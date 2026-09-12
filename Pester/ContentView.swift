@@ -526,7 +526,9 @@ private struct TaskDetailsSheet: View {
                         VStack(alignment: .leading, spacing: 28) {
                             actionBar
                             taskSummary
-                            durationBar
+                            if task.state != .completed {
+                                durationBar
+                            }
                             statusSection
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
