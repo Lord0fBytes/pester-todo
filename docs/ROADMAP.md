@@ -119,6 +119,8 @@ Build `0.6.1-0031` increases the visible outlined action-control size from 44 to
 
 Build `0.6.1-0032` limits interaction to visible action circles and the padded title text rather than their surrounding layout areas.
 
+Build `0.6.2-0041` supersedes the title-only interaction boundary: the complete title-card surface opens title editing.
+
 Build `0.6.1-0033` increases the visible action-control circles from 48 to 53 points.
 
 Build `0.6.1-0034` gives the title a centered, all-caps rounded display style; due-date surface polish remains open.
