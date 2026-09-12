@@ -17,7 +17,8 @@ Pester is a focused native iPhone app: persistent reminders that keep pestering 
 - **Pester count:** the maximum number of notifications that can trigger before the task becomes overdue.
 - **Overdue:** a task that has exhausted its pester count and has not been completed.
 - **Active:** a task that is actively sending pestering notifications.
-- **Upcoming:** a future-scheduled or snoozed task that is not currently pestering.
+- **Upcoming:** a future-scheduled task that has not begun pestering.
+- **Snoozed:** a task whose pestering cycle is paused until its fixed snooze deadline.
 - **Completed:** a task that has been explicitly dismissed as complete.
 - **Pestering:** the state in which one or more tasks are actively sending notifications.
 
@@ -35,6 +36,7 @@ Pester is a focused native iPhone app: persistent reminders that keep pestering 
 - The app-open lifecycle event is confirmed in testing: each reminder log records `App opened — reset check`.
 - Completing or snoozing a notification resets other overdue tasks only. Active and upcoming tasks keep their pending notifications and counts; completed tasks remain completed. The triggering task follows its explicit Complete or Snooze transition.
 - The pester counter is the number of notifications allowed before a task becomes overdue; it is separate from pester duration and snooze duration.
+- Every user-created task must have a scheduled date and time. An Unscheduled task or inbox group is not part of the product model. The existing `.notScheduled` case is an internal pre-v1 fallback to remove during v0.6 lifecycle cleanup; no data migration is needed because the user is the only tester and has no unscheduled tasks.
 
 ## First milestone
 
@@ -85,6 +87,11 @@ Check current official documentation rather than relying on remembered platform 
 
 ## Repository setup status
 
+- Build `0.6.0-0020` is the finalized-inbox-grouping checkpoint and awaits physical-iPhone testing. The next development branch is `0.6.1` for a collaborative redesign of the task detail page.
+- The v0.6 inbox has two task sections: Pestering contains Overdue, Active, and Snoozed; Upcoming contains future-scheduled tasks due today or later. Completed remains on its dedicated screen. The Pestering label is a presentation group and does not mean a Snoozed task is actively sending notifications.
+- Pestering sorts first by state priority (Overdue, Active, Snoozed), then by the next pester or snooze deadline, then by creation time oldest first. Upcoming sorts by next pester time and then creation time oldest first.
+- Upcoming rows due today use a green clock. Later Upcoming rows retain the blue clock. Their status and displayed date continue to communicate meaning without relying only on color.
+- Inbox section headings use plain text without colored dots. The Completed navigation row uses a secondary gray checkmark so it does not compete visually with active task content.
 - Current physically tested release: `0.5.0-0018`. v0.5.0 inbox grouping and next-pester ordering are complete and merged into `main`.
 - The v0.5 inbox uses ordered, nonempty sections: Pestering, Snoozed, Today, Future, then Unscheduled. Pestering contains Active and Overdue tasks. Today contains only Upcoming tasks due today. Completed tasks are hidden from the inbox sections and available through a dedicated Completed screen at the bottom of the inbox.
 - Sections sort by their relevant scheduled time, earliest first, with task title as a stable tie-breaker. Overdue tasks sort before Active tasks within Pestering. Headers use red for Pestering, purple for Snoozed, green for Today, and gray for Future and Unscheduled.
@@ -112,12 +119,12 @@ Check current official documentation rather than relying on remembered platform 
 - Build `0.3.0-0004` added future date/time scheduling, persisted first-fire times, per-reminder rescheduling, and schedule deletion. Its future scheduling and lifecycle behavior passed physical-iPhone testing.
 - Build `0.3.1-0005` promotes each reminder controller to a UUID-backed `PesterTask`. The root screen presents tappable task rows with state and next-pester summaries; each detail screen contains the task properties, schedule, durations, actions, status, and diagnostics. Existing storage keys and legacy notification payload IDs remain supported so v0.3.0 schedules survive the upgrade. The UI and notification regressions passed physical-iPhone testing.
 - Notification requests remain an internal scheduling detail; a separately persisted `NotificationSchedule` entity is deferred until later storage or synchronization requirements justify it.
-- The public task states are Not scheduled, Upcoming, Active, Snoozed, Overdue, and Completed. State rows pair text with SF Symbols so meaning does not depend on color alone.
+- The intended public task states are Upcoming, Active, Snoozed, Overdue, and Completed. State rows pair text with SF Symbols so meaning does not depend on color alone.
 - The accepted navigation pattern is a compact task list with state and next-pester summaries, followed by a native detail screen for task properties and actions.
 - Notification categories request Complete, Snooze, app-open, and explicit-dismiss callbacks. Swipe-dismiss logging remains unconfirmed; no read receipt or unattended delivery callback is inferred.
 - Signing uses Xcode automatic signing with the existing project team configuration.
 - `docs/ROADMAP.md` is the user-authored milestone plan. v0.5.0 is complete and verified on the physical iPhone.
-- Build identification uses `MARKETING_VERSION` for the release (currently `0.5.0`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `18`). The app displays them as `0.5.0-0018`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
+- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.0`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `20`). The app displays them as `0.6.0-0020`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
 
 ## v0.1.0 completion
 

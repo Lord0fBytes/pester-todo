@@ -25,7 +25,8 @@ struct ContentView: View {
                     let firstDate = kind.sortDate(for: $0)
                     let secondDate = kind.sortDate(for: $1)
                     if firstDate != secondDate { return firstDate < secondDate }
-                    return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+                    if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                    return $0.id.uuidString < $1.id.uuidString
                 }
             return matchingTasks.isEmpty ? nil : InboxSection(kind: kind, tasks: matchingTasks)
         }
@@ -66,7 +67,9 @@ struct ContentView: View {
                         ForEach(inboxSections) { section in
                             Section {
                                 ForEach(section.tasks) { task in
-                                NavigationLink(value: task.id) { TaskRow(task: task) }
+                                NavigationLink(value: task.id) {
+                                    TaskRow(task: task, tint: section.kind.rowTint(for: task))
+                                }
                                     .listRowBackground(
                                         taskToDelete?.id == task.id
                                             ? Color.red.opacity(0.12)
@@ -100,13 +103,7 @@ struct ContentView: View {
                                     }
                                 }
                             } header: {
-                                Label {
-                                    Text(section.kind.title)
-                                } icon: {
-                                    Image(systemName: "circle.fill")
-                                        .font(.caption2)
-                                        .foregroundStyle(section.kind.tint)
-                                }
+                                Text(section.kind.title)
                             }
                         }
                         if !completedTasks.isEmpty {
@@ -123,7 +120,7 @@ struct ContentView: View {
                                         }
                                     } icon: {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.green)
+                                            .foregroundStyle(.secondary)
                                     }
                                 }
                             }
@@ -202,29 +199,14 @@ struct ContentView: View {
 private struct InboxSection: Identifiable {
     enum Kind: Int, CaseIterable, Identifiable {
         case pestering
-        case snoozed
-        case today
-        case future
-        case unscheduled
+        case upcoming
 
         var id: Int { rawValue }
 
         var title: String {
             switch self {
             case .pestering: "Pestering"
-            case .snoozed: "Snoozed"
-            case .today: "Today"
-            case .future: "Future"
-            case .unscheduled: "Unscheduled"
-            }
-        }
-
-        var tint: Color {
-            switch self {
-            case .pestering: .red
-            case .snoozed: .purple
-            case .today: .green
-            case .future, .unscheduled: .secondary
+            case .upcoming: "Upcoming"
             }
         }
 
@@ -232,43 +214,43 @@ private struct InboxSection: Identifiable {
         func includes(_ task: PesterTask) -> Bool {
             switch self {
             case .pestering:
-                return task.state == .overdue || task.state == .active
-            case .snoozed:
-                return task.state == .snoozed
-            case .today:
-                guard task.state == .upcoming else { return false }
-                guard let date = task.nextPesterAt ?? task.scheduledStart ?? task.dueAt else { return true }
-                let today = Calendar.current.startOfDay(for: Date())
-                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
-                return date < tomorrow
-            case .future:
-                guard task.state == .upcoming,
-                      let date = task.nextPesterAt ?? task.scheduledStart ?? task.dueAt else { return false }
-                let today = Calendar.current.startOfDay(for: Date())
-                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
-                return date >= tomorrow
-            case .unscheduled:
-                return task.state == .notScheduled
+                return task.state == .overdue || task.state == .active || task.state == .snoozed
+            case .upcoming:
+                return task.state == .upcoming
             }
         }
 
         @MainActor
         func sortPriority(for task: PesterTask) -> Int {
-            self == .pestering && task.state == .overdue ? 0 : 1
+            guard self == .pestering else { return 0 }
+            switch task.state {
+            case .overdue: return 0
+            case .active: return 1
+            case .snoozed: return 2
+            default: return 3
+            }
         }
 
         @MainActor
         func sortDate(for task: PesterTask) -> Date {
             switch self {
             case .pestering:
-                return task.nextPesterAt ?? task.dueAt ?? task.updatedAt
-            case .snoozed:
-                return task.snoozedUntil ?? task.scheduledStart ?? task.updatedAt
-            case .today, .future:
+                if task.state == .snoozed {
+                    return task.snoozedUntil ?? task.nextPesterAt ?? .distantFuture
+                }
+                return task.nextPesterAt ?? .distantFuture
+            case .upcoming:
                 return task.nextPesterAt ?? task.scheduledStart ?? task.dueAt ?? task.updatedAt
-            case .unscheduled:
-                return task.updatedAt
             }
+        }
+
+        @MainActor
+        func rowTint(for task: PesterTask) -> Color {
+            guard self == .upcoming else { return task.state.tint }
+            let today = Calendar.current.startOfDay(for: Date())
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
+            let nextDate = task.nextPesterAt ?? task.scheduledStart ?? task.dueAt ?? .distantFuture
+            return nextDate < tomorrow ? .green : .blue
         }
     }
 
@@ -313,12 +295,13 @@ private struct CompletedTasksView: View {
 
 private struct TaskRow: View {
     @ObservedObject var task: PesterTask
+    var tint: Color? = nil
 
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: task.state.symbolName)
                 .font(.title3)
-                .foregroundStyle(task.state.tint)
+                .foregroundStyle(tint ?? task.state.tint)
                 .frame(width: 32, height: 44)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {

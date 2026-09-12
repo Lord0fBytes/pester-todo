@@ -1,6 +1,27 @@
 # Pester testing
 
-This is the physical-device test checklist. The current tested build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+This is the physical-device test checklist. The current development build is `0.6.0-0020`; the latest completed build is `0.5.0-0018`. Update the checkboxes and results as each feature or bug is tested. Record the device model, iOS version, app build, notification settings, and smartwatch state when a result is surprising.
+
+## v0.6.0 finalized inbox grouping
+
+- [ ] Open Pester with Overdue, Active, Snoozed, Upcoming-today, and Upcoming-future tasks.
+  - *Expect* only Pestering and Upcoming task-section headers. Pestering contains Overdue, Active, and Snoozed tasks. Upcoming contains both tasks due today and tasks due later. There should be no separate Snoozed, Today, Future, or Unscheduled header.
+  - *User notes:*
+- [ ] Create multiple Pestering tasks in deliberately mixed order.
+  - *Expect* all Overdue tasks first, then Active tasks, then Snoozed tasks. Within each state, expect the earliest next pester or snooze time first; equal times use the oldest creation time first.
+  - *User notes:*
+- [ ] Create multiple Upcoming tasks due today and in the future in deliberately mixed order.
+  - *Expect* one chronological list using next pester time, followed by oldest creation time when dates match. Tasks due today use a green clock; later tasks use the existing blue clock. The displayed date and status must keep the distinction understandable without color.
+  - *User notes:*
+- [ ] Let an Upcoming task begin, snooze an Active task, and complete another task.
+  - *Expect* the first task to move from Upcoming to Pestering, the snoozed task to remain in Pestering but sort after Active tasks, and the completed task to move to the existing Completed screen.
+  - *User notes:*
+- [ ] Add and edit tasks through the normal task forms.
+  - *Expect* every saved task to require a future date and time. No Unscheduled task or inbox section should be created.
+  - *User notes:*
+- [x] Review the inbox section headers and Completed row in light and dark appearance.
+  - *Expect* plain text Pestering and Upcoming headers without colored dots. Expect the Completed checkmark to use the subdued system secondary color rather than green.
+  - *User notes:* This is looking good. ✅ Simulator validation passed in light and dark appearance; physical-iPhone testing will follow later.
 
 ## v0.5.0 inbox grouping and ordering
 

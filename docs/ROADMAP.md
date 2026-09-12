@@ -84,10 +84,27 @@ Implemented and verified on the physical iPhone in build `0.4.2-0014`.
 
 Implemented and verified on the physical iPhone in build `0.5.0-0018`. Active and overdue tasks appear under Pestering, Today contains only upcoming tasks due today, and completed tasks appear on a dedicated screen reached from the bottom of the inbox. Store refreshes are coalesced so section changes do not repeatedly update navigation within one display frame.
 
-## v0.6.0 — polish and stability
+## v0.6.0 — finalized inbox grouping
 
+- 🚧 Finalize the inbox groups:
+	- 🚧 Pestering contains Overdue, Active, and Snoozed tasks, sorted by state priority, next pester time, then oldest creation time.
+	- 🚧 Upcoming contains tasks due today and in the future, sorted by next pester time, then oldest creation time.
+	- 🚧 Use a green clock for tasks due today and the existing blue clock for later tasks.
+	- 🚧 Remove the separate Snoozed, Today, Future, and Unscheduled sections.
+- 🚧 Require every task to have a scheduled date and time; an unscheduled reminder is not part of the product model.
+
+Implemented in build `0.6.0-0020` and validated in the simulator; broader physical-iPhone testing is pending.
+
+## v0.6.1 — task detail redesign
+
+- Collaboratively redesign the task detail page and its information hierarchy before implementation.
+- Clarify the relationship between task properties, schedule, actions, status, and diagnostic information.
+- Keep common task actions easy to reach without overwhelming the primary task information.
 - Polish the inbox, task creation, editing, and notification flows.
 - Prevent title-only edits from changing a task's lifecycle or notification timing.
+
+## v0.6.x — remaining polish and stability
+
 - Add colors to overdue, upcoming, active
 - Improve empty, permission-denied, and scheduling-error states.
 - Verify Dynamic Type, accessibility labels, and common screen sizes.
