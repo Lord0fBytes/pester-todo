@@ -5,6 +5,17 @@ build/
 *.ipa
 xcuserdata/
 *.xcuserstate
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+.obsidian/
+.codex/
+.codex-nightly/
+notes/
+artwork/**/tmp/
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.mobileprovision
+*.provisionprofile

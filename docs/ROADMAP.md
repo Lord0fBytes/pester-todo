@@ -84,16 +84,41 @@ Implemented and verified on the physical iPhone in build `0.4.2-0014`.
 
 Implemented and verified on the physical iPhone in build `0.5.0-0018`. Active and overdue tasks appear under Pestering, Today contains only upcoming tasks due today, and completed tasks appear on a dedicated screen reached from the bottom of the inbox. Store refreshes are coalesced so section changes do not repeatedly update navigation within one display frame.
 
-## v0.6.0 — polish and stability
+## ✅ v0.6.0 — finalized inbox grouping
 
-- Polish the inbox, task creation, editing, and notification flows.
-- Prevent title-only edits from changing a task's lifecycle or notification timing.
-- Add colors to overdue, upcoming, active
-- Improve empty, permission-denied, and scheduling-error states.
-- Verify Dynamic Type, accessibility labels, and common screen sizes.
-- Test repeated launches, edits, completion, snoozing, and notification actions.
-- Test locked, backgrounded, offline, force-quit, and reboot scenarios on the physical iPhone.
-- Resolve crashes, duplicate alerts, stale alerts, and persistence errors.
+- ✅ Finalize the inbox groups:
+	- ✅ Pestering contains Overdue, Active, and Snoozed tasks, sorted by state priority, next pester time, then oldest creation time.
+	- ✅ Upcoming contains tasks due today and in the future, sorted by next pester time, then oldest creation time.
+	- ✅ Use a green clock for tasks due today and the existing blue clock for later tasks.
+	- ✅ Remove the separate Snoozed, Today, Future, and Unscheduled sections.
+- ✅ Require every task to have a scheduled date and time; an unscheduled reminder is not part of the product model.
+
+Implemented in build `0.6.0-0020` and physically validated in GitHub issue [#10](https://github.com/Lord0fBytes/pester-todo/issues/10).
+
+Tracking: [#10 — physical-iPhone inbox validation](https://github.com/Lord0fBytes/pester-todo/issues/10).
+
+## ✅ v0.6.1 — task detail redesign
+
+- ✅ Replace full-screen task navigation with a compact native bottom sheet that can expand when needed.
+- ✅ Remove public state, pester-count, and diagnostic details from the primary task controls while continuing to track them internally.
+- ✅ Present the sheet as a compact task inspector with a top action bar (Complete/Snooze when applicable, Delete, and Close), followed by tappable title and due timestamp, then pester and snooze durations. Do not show next-pester or lifecycle status in the details sheet.
+- ✅ Replace minute-by-minute steppers with menu choices for 1, 2, 3, 4, 5, 10, 15, 20, 30, 45, and 60 minutes.
+- ✅ Give title and due-date edits their own focused Cancel/Save or Cancel/Set modes. Save duration-menu selections immediately and keep Close stable in the normal inspector.
+- ✅ Use five-minute increments in the in-app due-time picker while preserving support for precise times supplied by future API or AI integrations.
+- ✅ Polish the inbox, task creation, editing, and notification flows.
+- ✅ Prevent title-only edits from changing a task's lifecycle or notification timing.
+
+Builds `0.6.1-0026` through `0.6.1-0045` document the task-details and inbox refinements that led to the accepted, physically validated `0046` checkpoint. Earlier simulator-only proposal and rejection notes are historical context, not remaining work.
+
+Build `0.6.1-0046` uses the native iOS time picker with five-minute increments for task creation and both editing surfaces. New-task defaults round up to the next five-minute boundary. Physical-iPhone validation passed in GitHub issue [#11](https://github.com/Lord0fBytes/pester-todo/issues/11).
+
+Tracking: [#11 — physical-iPhone task-details and due-time-picker validation](https://github.com/Lord0fBytes/pester-todo/issues/11).
+
+## ✅ v0.6.x — validation complete
+
+- ✅ [#15 — validate lifecycle and notification behavior on a physical iPhone](https://github.com/Lord0fBytes/pester-todo/issues/15): repeated launches, edits, completion, snoozing, notification actions, locked/backgrounded/offline/force-quit/reboot scenarios.
+- ⏭️ [#12 — state-color treatment](https://github.com/Lord0fBytes/pester-todo/issues/12) was declined as won’t-fix.
+- Resolve new crashes, duplicate alerts, stale alerts, and persistence errors through separate reproducible `bug` issues as they are found.
 
 ## v1.0.0 — initial release
 
@@ -107,15 +132,11 @@ Ship the first complete local version of Pester:
 - Complete and snooze actions from the app and notification context menu.
 - Durable local task state.
 - Physical-iPhone validation of the core flow.
+- [#13 — improve empty, permission-denied, and scheduling-error states](https://github.com/Lord0fBytes/pester-todo/issues/13).
 
-## v1.1.0 — external task creation experiment
+## v1.1.0 — reserved
 
-Begin testing external control after the local app is stable:
-
-- Define the first API/MCP task operations.
-- Test creating a task from outside the iPhone app.
-- Investigate how the phone learns about externally created tasks while the app is closed.
-- Keep this experimental until synchronization and notification delivery behavior are understood.
+No work is currently scoped for this milestone. External-task-creation research was deferred to the v2.0.0 GitHub milestone.
 
 ## v2.0.0 — API release
 
@@ -126,6 +147,8 @@ Release the external API and MCP integration as a deliberate second major versio
 - Shared task logic between the app and API.
 - Synchronization between server state and local iPhone state.
 - Clear handling for tasks created while the app is closed or offline.
-- MCP tools for AI agents, subject to the reliability demonstrated in v1.1.0.
+- MCP tools for AI agents, subject to reliability demonstrated by the v2.0.0 external-task-creation research.
+
+GitHub milestone tracking: [#3 — reactivate completed tasks](https://github.com/Lord0fBytes/pester-todo/issues/3), [#5 — snooze-duration decision](https://github.com/Lord0fBytes/pester-todo/issues/5), [#6 — recurring tasks](https://github.com/Lord0fBytes/pester-todo/issues/6), [#7 — natural-language dates](https://github.com/Lord0fBytes/pester-todo/issues/7), [#14 — accessibility and screen-size validation](https://github.com/Lord0fBytes/pester-todo/issues/14) (on hold), and [#16 — external task creation while the app is closed](https://github.com/Lord0fBytes/pester-todo/issues/16).
 
 The API and MCP work should build on the proven local task lifecycle rather than expanding the 1.0 release prematurely.

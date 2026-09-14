@@ -464,18 +464,69 @@ final class PesterTask: ObservableObject, Identifiable {
     func update(title: String, dueAt: Date, pesterMinutes: Int, snoozeMinutes: Int) async {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty,
-              dueAt > Date(),
               (1...60).contains(pesterMinutes),
               (1...60).contains(snoozeMinutes) else { return }
+        let dueDateChanged = self.dueAt != dueAt
+        guard !dueDateChanged || dueAt > Date() else { return }
         await serially {
+            let titleChanged = self.title != trimmedTitle
+            let durationsChanged = self.pesterMinutes != pesterMinutes || self.snoozeMinutes != snoozeMinutes
+
             self.title = trimmedTitle
-            self.markUpdated()
-            await self.installBatch(
-                snoozing: false,
-                interval: pesterMinutes,
-                snooze: snoozeMinutes,
-                scheduledFor: dueAt
+            if dueDateChanged {
+                await self.installBatch(
+                    snoozing: false,
+                    interval: pesterMinutes,
+                    snooze: snoozeMinutes,
+                    scheduledFor: dueAt
+                )
+            } else if durationsChanged {
+                let pending = await self.center.pendingNotificationRequests()
+                if pending.contains(where: { self.allIDs.contains($0.identifier) }) {
+                    let isUpcoming = self.lifecycleState == .upcoming || self.lifecycleState == .snoozed
+                    let futureStart = isUpcoming ? self.scheduledStart : nil
+                    await self.installBatch(
+                        snoozing: self.lifecycleState == .snoozed,
+                        interval: pesterMinutes,
+                        snooze: snoozeMinutes,
+                        scheduledFor: futureStart
+                    )
+                } else {
+                    self.saveSettings(interval: pesterMinutes, snooze: snoozeMinutes)
+                    await self.updateStatus()
+                    self.record("Settings saved: pester \(pesterMinutes) min, snooze \(snoozeMinutes) min.")
+                }
+            } else if titleChanged {
+                self.markUpdated()
+                await self.refreshPendingNotificationTitles()
+                self.record("Title updated; pending alert times preserved.")
+            }
+        }
+    }
+
+    private func refreshPendingNotificationTitles() async {
+        for request in await pendingRequests() {
+            guard let fireDate = scheduledFireDate(for: request), fireDate > Date() else { continue }
+            let content = UNMutableNotificationContent()
+            content.title = "Pester"
+            content.body = title
+            content.sound = request.content.sound
+            content.categoryIdentifier = request.content.categoryIdentifier
+            content.threadIdentifier = request.content.threadIdentifier
+            content.userInfo = request.content.userInfo
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: max(1, fireDate.timeIntervalSinceNow),
+                repeats: false
             )
+            do {
+                try await center.add(UNNotificationRequest(
+                    identifier: request.identifier,
+                    content: content,
+                    trigger: trigger
+                ))
+            } catch {
+                record("Could not update pending notification title: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -530,8 +581,8 @@ final class PesterTask: ObservableObject, Identifiable {
                 let content = UNMutableNotificationContent()
                 let count = index + 1
                 let fireDate = firstFireDate.addingTimeInterval(TimeInterval(index * interval * 60))
-                content.title = "\(title) · Pester \(count)/\(self.allIDs.count)"
-                content.body = "Pester count \(count) of \(self.allIDs.count). Complete to stop, or snooze for \(snooze) minutes."
+                content.title = "Pester"
+                content.body = title
                 content.sound = .default
                 content.categoryIdentifier = "pester.test"
                 content.threadIdentifier = "pester.test.\(self.id)"

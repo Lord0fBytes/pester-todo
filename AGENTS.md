@@ -17,7 +17,8 @@ Pester is a focused native iPhone app: persistent reminders that keep pestering 
 - **Pester count:** the maximum number of notifications that can trigger before the task becomes overdue.
 - **Overdue:** a task that has exhausted its pester count and has not been completed.
 - **Active:** a task that is actively sending pestering notifications.
-- **Upcoming:** a future-scheduled or snoozed task that is not currently pestering.
+- **Upcoming:** a future-scheduled task that has not begun pestering.
+- **Snoozed:** a task whose pestering cycle is paused until its fixed snooze deadline.
 - **Completed:** a task that has been explicitly dismissed as complete.
 - **Pestering:** the state in which one or more tasks are actively sending notifications.
 
@@ -35,6 +36,7 @@ Pester is a focused native iPhone app: persistent reminders that keep pestering 
 - The app-open lifecycle event is confirmed in testing: each reminder log records `App opened — reset check`.
 - Completing or snoozing a notification resets other overdue tasks only. Active and upcoming tasks keep their pending notifications and counts; completed tasks remain completed. The triggering task follows its explicit Complete or Snooze transition.
 - The pester counter is the number of notifications allowed before a task becomes overdue; it is separate from pester duration and snooze duration.
+- Every user-created task must have a scheduled date and time. An Unscheduled task or inbox group is not part of the product model. The existing `.notScheduled` case is an internal pre-v1 fallback to remove during v0.6 lifecycle cleanup; no data migration is needed because the user is the only tester and has no unscheduled tasks.
 
 ## First milestone
 
@@ -81,11 +83,36 @@ Check current official documentation rather than relying on remembered platform 
 - Make small, verifiable changes and keep this file updated as decisions are confirmed.
 - Clearly distinguish implemented behavior, proposed design, and platform assumptions awaiting validation.
 - Do not build the full app/backend ahead of the notification proof of concept unless the user changes the scope.
-- Format new `docs/TESTING.md` cases as a checkbox followed by italicized `Expect` and `User notes` entries. Preserve the user's notes verbatim when recording results, and leave unresolved observations open until they are discussed or reproduced.
+- GitHub Issues are the source of truth for new bugs, features, test plans, device-test results, screenshots, and follow-up discussion. Start new work from an issue whenever practical; format test-plan steps in issue bodies or comments as Markdown checkboxes (`- [ ]`) so results can be tracked in place. Post the build number, device context, commands run, and observed result in issue comments. Preserve the user's notes verbatim in those comments and leave unresolved observations open until they are discussed or reproduced.
+- `docs/TESTING.md` is a historical checklist and results reference. Do not add new ongoing test notes or results there; link or refer to the relevant GitHub issue instead.
+- During the v0.6 UI work, collaborate on the overall look and future implications before implementing loosely formed ideas. Treat simulator prototypes as proposals until the user explicitly accepts their look and feel; record rejected iterations without promoting them to confirmed design.
 
 ## Repository setup status
 
-- Current physically tested release: `0.5.0-0018`. v0.5.0 inbox grouping and next-pester ordering are complete and merged into `main`.
+- Build `0.6.0-0020` is the finalized-inbox-grouping checkpoint. Physical-iPhone validation passed and is recorded in GitHub issue #10.
+- The v0.6 inbox has two task sections: Pestering contains Overdue, Active, and Snoozed; Upcoming contains future-scheduled tasks due today or later. Completed remains on its dedicated screen. The Pestering label is a presentation group and does not mean a Snoozed task is actively sending notifications.
+- Pestering sorts first by state priority (Overdue, Active, Snoozed), then by the next pester or snooze deadline, then by creation time oldest first. Upcoming sorts by next pester time and then creation time oldest first.
+- Upcoming rows due today use a green clock. Later Upcoming rows retain the blue clock. Their status and displayed date continue to communicate meaning without relying only on color.
+- Inbox section headings use plain text without colored dots. The Completed navigation row uses a secondary gray checkmark so it does not compete visually with active task content.
+- The confirmed task-details content direction is a top action bar (lifecycle actions when applicable, Delete, and Close), followed by title, due timestamp, pester duration, and snooze duration. Do not show next-pester time, lifecycle status, pester count, task ID, or interaction log in this surface. The exact visual composition remains undecided.
+- Build `0.6.1-0026` experiments with a medium/large native sheet, Form-style cards, matching light bordered Complete/Snooze actions, focused title and due editors, and immediate duration-menu saves. The user rejected the current presentation as still not looking right and feeling too context-heavy. Do not treat its cards, spacing, action styling, or overall hierarchy as accepted visual design.
+- Build `0.6.1-0027` replaces the normal inspector's Form-style cards with a compact custom sheet: evenly spaced circular Complete, Snooze, Delete, and Close controls; an editable large title with muted due timestamp; and bell/timer duration menus showing compact current values. This is a simulator-validated proposal, not an accepted design or a physical-device test candidate. The action labels and duration-value-only treatment remain open for review.
+- Build `0.6.1-0028` refines that proposal with a shorter initial sheet, more space below the drag indicator, icon-only actions without colored fills, a lightly bordered title surface, and a muted gray due-date surface. The duration treatment is intentionally unchanged and remains open for redesign. This is still a simulator-validated proposal, not an accepted design or a physical-device test candidate.
+- Build `0.6.1-0029` makes the title and due date one stacked task card, following the supplied visual reference: a clean title surface above a taller muted-gray due-date surface with one enclosing border. The duration treatment remains intentionally unchanged and open for redesign. This is still a simulator-validated proposal, not an accepted design or a physical-device test candidate.
+- Build `0.6.1-0030` adds subtle neutral circular borders to the icon-only action controls so their tappable affordance is visible while the icons remain the only colored elements. This remains an unaccepted, simulator-validated proposal.
+- Build `0.6.1-0031` increases the visible outlined action controls from 44 to 48 points (about 9%) while retaining their existing spacing and semantics. This remains an unaccepted, simulator-validated proposal.
+- Build `0.6.1-0032` limits action hits to each visible 48-point circle and title editing to the padded title text, leaving the visual spacing and unused title-card surface noninteractive. This remains an unaccepted, simulator-validated proposal.
+- Build `0.6.2-0041` supersedes the title-hit boundary from `0032`: the complete title-card surface is interactive so an accidental tap target does not confuse users. This remains an unaccepted, simulator-validated proposal.
+- Build `0.6.1-0033` increases the visible outlined action controls from 48 to 53 points, another approximately 10% increase, while retaining exact visible hit areas. This remains an unaccepted, simulator-validated proposal.
+- Build `0.6.1-0034` uses a centered all-caps rounded display treatment for the title while keeping its tap target limited to the title itself. The due-date surface remains open for a separate polish direction.
+- Build `0.6.1-0035` reverts the `0034` task-title treatment: that change was based on a misunderstanding of feedback intended for the inbox title and description. The task-details title returns to its prior leading title style; inbox-title polish remains a separate open direction.
+- Build `0.6.1-0036` applies that intended inbox-title experiment: a centered all-caps rounded Pester heading and a centered muted explanatory surface. This is a simulator-only visual proposal, not accepted design.
+- Build `0.6.1-0037` moves the centered all-caps rounded inbox title into the navigation bar, removing excess list headspace while retaining the explanatory surface below it. This is a simulator-only visual proposal, not accepted design.
+- Build `0.6.1-0044` is the consolidated development build: it combines the task-row hit target, title-card hit target, completed-task duration visibility, notification hierarchy, and time-picker roadmap work. Its later physical-iPhone validation completed in build `0.6.1-0046`.
+- Build `0.6.1-0045` moves the task-row hit region into the button label itself and explicitly gives it the full row width, addressing physical testing that found the outer button modifier insufficient. Physical-iPhone verification passed.
+- Build `0.6.1-0046` uses the native iOS time picker with five-minute increments for new tasks and both task-editing surfaces. A new task defaults to the next five-minute boundary. Physical-iPhone validation passed and is recorded in GitHub issue #11.
+- The current task-details implementation's title-only save updates pending notification titles while preserving identifiers, fire times, pester count, and lifecycle. Its duration choices are 1, 2, 3, 4, 5, 10, 15, 20, 30, 45, and 60 minutes. These functional behaviors are implemented and physically validated; any future visual changes require a new GitHub issue.
+- `main` remains the last release branch at `0.5.0-0018`. The current physically validated integration build is `0.6.1-0046` on `develop/0.6`.
 - The v0.5 inbox uses ordered, nonempty sections: Pestering, Snoozed, Today, Future, then Unscheduled. Pestering contains Active and Overdue tasks. Today contains only Upcoming tasks due today. Completed tasks are hidden from the inbox sections and available through a dedicated Completed screen at the bottom of the inbox.
 - Sections sort by their relevant scheduled time, earliest first, with task title as a stable tie-breaker. Overdue tasks sort before Active tasks within Pestering. Headers use red for Pestering, purple for Snoozed, green for Today, and gray for Future and Unscheduled.
 - `TaskStore` republishes task-level lifecycle changes so the parent inbox recomputes grouping and ordering after scheduling, snoozing, completion, overdue reset, and notification-status refreshes. Build `0.5.0-0016` coalesces those refreshes and uses one scene-phase task, preventing repeated NavigationStack updates within a single display frame.
@@ -102,8 +129,8 @@ Check current official documentation rather than relying on remembered platform 
 - Delete Schedule was observed to remove a task from the inbox even though the test expected it to retain a Not scheduled task; this needs reproduction. A full-swipe deletion passed, but the row temporarily disappeared and returned while its confirmation dialog was shown.
 - Tasks persist as a Codable JSON collection in UserDefaults for this milestone. On the first 0.4 launch, the store migrates the legacy Reminder A/B controllers into UUID-backed records while retaining their existing notification keys, settings, schedules, and logs.
 - `TaskStore` owns the task collection and resolves notification actions to dynamically created tasks. `PesterTask` remains the task domain boundary and owns each task's notification behavior.
-- Each task has saved pester/snooze settings (1–60 minutes), a separate 8-request batch, generation token, and local diagnostic log. Notification text includes the pester count for debugging.
-- Debug notification text currently includes the pester count, such as `Pester 1/8`, so reset behavior can be observed on the phone and third-party smartwatch. This is temporary diagnostic presentation, not the intended final notification copy.
+- Each task has saved pester/snooze settings (1–60 minutes), a separate 8-request batch, generation token, and local diagnostic log. Pester counts remain available in internal diagnostics.
+- Notification presentation uses `Pester` as the notification title and the task name as its body. The pester count and snooze guidance are not user-facing notification text.
 - Saving edited settings replaces only that reminder's pending batch if active, restarting its countdown. Inactive reminders save settings without starting. Complete/Snooze actions target one reminder via payload ID; stale batch actions are ignored.
 - Opening the app preserves active schedules and resets only overdue tasks. A reset overdue task waits until the app enters the background before installing a fresh `1/8` batch. Upcoming snoozed schedules and completed tasks are preserved.
 - Foreground alerts are suppressed without resetting active tasks. If the final scheduled alert is exhausted while Pester is visible, the now-overdue task resets and waits for the app to leave.
@@ -112,12 +139,12 @@ Check current official documentation rather than relying on remembered platform 
 - Build `0.3.0-0004` added future date/time scheduling, persisted first-fire times, per-reminder rescheduling, and schedule deletion. Its future scheduling and lifecycle behavior passed physical-iPhone testing.
 - Build `0.3.1-0005` promotes each reminder controller to a UUID-backed `PesterTask`. The root screen presents tappable task rows with state and next-pester summaries; each detail screen contains the task properties, schedule, durations, actions, status, and diagnostics. Existing storage keys and legacy notification payload IDs remain supported so v0.3.0 schedules survive the upgrade. The UI and notification regressions passed physical-iPhone testing.
 - Notification requests remain an internal scheduling detail; a separately persisted `NotificationSchedule` entity is deferred until later storage or synchronization requirements justify it.
-- The public task states are Not scheduled, Upcoming, Active, Snoozed, Overdue, and Completed. State rows pair text with SF Symbols so meaning does not depend on color alone.
+- The intended public task states are Upcoming, Active, Snoozed, Overdue, and Completed. State rows pair text with SF Symbols so meaning does not depend on color alone.
 - The accepted navigation pattern is a compact task list with state and next-pester summaries, followed by a native detail screen for task properties and actions.
 - Notification categories request Complete, Snooze, app-open, and explicit-dismiss callbacks. Swipe-dismiss logging remains unconfirmed; no read receipt or unattended delivery callback is inferred.
 - Signing uses Xcode automatic signing with the existing project team configuration.
 - `docs/ROADMAP.md` is the user-authored milestone plan. v0.5.0 is complete and verified on the physical iPhone.
-- Build identification uses `MARKETING_VERSION` for the release (currently `0.5.0`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `18`). The app displays them as `0.5.0-0018`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
+- Build identification uses `MARKETING_VERSION` for the release (currently `0.6.1`) and numeric `CURRENT_PROJECT_VERSION` for installable builds (currently `46`). The app displays them as `0.6.1-0046`; increment the build number for each distinct installable code build. See `docs/BUILD.md`.
 
 ## v0.1.0 completion
 
@@ -127,5 +154,4 @@ Check current official documentation rather than relying on remembered platform 
 
 ## Prior conversation
 
-- Previous conversation: https://chatgpt.com/share/6aa2b94c-3ddc-83e8-8fd6-d1d06701a72b
-- This file summarizes the project context supplied by the user; the linked conversation has not been independently reviewed.
+- This file summarizes the project context supplied by the user. The prior-chat link is intentionally kept out of the repository so publishing it does not broaden access to that conversation.

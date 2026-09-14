@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var store = TaskStore.shared
     @State private var showingNewTask = false
+    @State private var selectedTask: PesterTask?
     @State private var taskToDelete: PesterTask?
 
     private var appVersion: String {
@@ -25,7 +26,8 @@ struct ContentView: View {
                     let firstDate = kind.sortDate(for: $0)
                     let secondDate = kind.sortDate(for: $1)
                     if firstDate != secondDate { return firstDate < secondDate }
-                    return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+                    if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                    return $0.id.uuidString < $1.id.uuidString
                 }
             return matchingTasks.isEmpty ? nil : InboxSection(kind: kind, tasks: matchingTasks)
         }
@@ -48,7 +50,19 @@ struct ContentView: View {
                 List {
                     Section {
                         Text("Choose a task to view its schedule, durations, actions, and activity.")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(3)
+                            .frame(maxWidth: .infinity)
+                            .padding(16)
+                            .background(
+                                Color(uiColor: .tertiarySystemFill),
+                                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            )
+                        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
                     if store.tasks.isEmpty {
                         Section("Tasks") {
@@ -66,7 +80,15 @@ struct ContentView: View {
                         ForEach(inboxSections) { section in
                             Section {
                                 ForEach(section.tasks) { task in
-                                NavigationLink(value: task.id) { TaskRow(task: task) }
+                                Button {
+                                    selectedTask = task
+                                } label: {
+                                    TaskRow(task: task, tint: section.kind.rowTint(for: task))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                }
+                                    .buttonStyle(.plain)
+                                .contentShape(Rectangle())
                                     .listRowBackground(
                                         taskToDelete?.id == task.id
                                             ? Color.red.opacity(0.12)
@@ -100,13 +122,7 @@ struct ContentView: View {
                                     }
                                 }
                             } header: {
-                                Label {
-                                    Text(section.kind.title)
-                                } icon: {
-                                    Image(systemName: "circle.fill")
-                                        .font(.caption2)
-                                        .foregroundStyle(section.kind.tint)
-                                }
+                                Text(section.kind.title)
                             }
                         }
                         if !completedTasks.isEmpty {
@@ -123,7 +139,7 @@ struct ContentView: View {
                                         }
                                     } icon: {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.green)
+                                            .foregroundStyle(.secondary)
                                     }
                                 }
                             }
@@ -140,8 +156,15 @@ struct ContentView: View {
                     .accessibilityLabel("App version \(appVersion)")
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Pester")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Pester")
+                        .font(.system(.title2, design: .rounded).weight(.heavy))
+                        .textCase(.uppercase)
+                        .tracking(0.8)
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         showingNewTask = true
@@ -150,13 +173,13 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationDestination(for: UUID.self) { taskID in
-                if let task = store.tasks.first(where: { $0.id == taskID }) {
-                    TaskDetailView(task: task, store: store)
-                }
-            }
             .sheet(isPresented: $showingNewTask) {
                 TaskEditorSheet(store: store)
+            }
+            .sheet(item: $selectedTask) { task in
+                TaskDetailsSheet(task: task, store: store)
+                    .presentationDetents([.height(340), .large])
+                    .presentationDragIndicator(.visible)
             }
             .confirmationDialog(
                 "Delete this task?",
@@ -202,29 +225,14 @@ struct ContentView: View {
 private struct InboxSection: Identifiable {
     enum Kind: Int, CaseIterable, Identifiable {
         case pestering
-        case snoozed
-        case today
-        case future
-        case unscheduled
+        case upcoming
 
         var id: Int { rawValue }
 
         var title: String {
             switch self {
             case .pestering: "Pestering"
-            case .snoozed: "Snoozed"
-            case .today: "Today"
-            case .future: "Future"
-            case .unscheduled: "Unscheduled"
-            }
-        }
-
-        var tint: Color {
-            switch self {
-            case .pestering: .red
-            case .snoozed: .purple
-            case .today: .green
-            case .future, .unscheduled: .secondary
+            case .upcoming: "Upcoming"
             }
         }
 
@@ -232,43 +240,43 @@ private struct InboxSection: Identifiable {
         func includes(_ task: PesterTask) -> Bool {
             switch self {
             case .pestering:
-                return task.state == .overdue || task.state == .active
-            case .snoozed:
-                return task.state == .snoozed
-            case .today:
-                guard task.state == .upcoming else { return false }
-                guard let date = task.nextPesterAt ?? task.scheduledStart ?? task.dueAt else { return true }
-                let today = Calendar.current.startOfDay(for: Date())
-                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
-                return date < tomorrow
-            case .future:
-                guard task.state == .upcoming,
-                      let date = task.nextPesterAt ?? task.scheduledStart ?? task.dueAt else { return false }
-                let today = Calendar.current.startOfDay(for: Date())
-                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
-                return date >= tomorrow
-            case .unscheduled:
-                return task.state == .notScheduled
+                return task.state == .overdue || task.state == .active || task.state == .snoozed
+            case .upcoming:
+                return task.state == .upcoming
             }
         }
 
         @MainActor
         func sortPriority(for task: PesterTask) -> Int {
-            self == .pestering && task.state == .overdue ? 0 : 1
+            guard self == .pestering else { return 0 }
+            switch task.state {
+            case .overdue: return 0
+            case .active: return 1
+            case .snoozed: return 2
+            default: return 3
+            }
         }
 
         @MainActor
         func sortDate(for task: PesterTask) -> Date {
             switch self {
             case .pestering:
-                return task.nextPesterAt ?? task.dueAt ?? task.updatedAt
-            case .snoozed:
-                return task.snoozedUntil ?? task.scheduledStart ?? task.updatedAt
-            case .today, .future:
+                if task.state == .snoozed {
+                    return task.snoozedUntil ?? task.nextPesterAt ?? .distantFuture
+                }
+                return task.nextPesterAt ?? .distantFuture
+            case .upcoming:
                 return task.nextPesterAt ?? task.scheduledStart ?? task.dueAt ?? task.updatedAt
-            case .unscheduled:
-                return task.updatedAt
             }
+        }
+
+        @MainActor
+        func rowTint(for task: PesterTask) -> Color {
+            guard self == .upcoming else { return task.state.tint }
+            let today = Calendar.current.startOfDay(for: Date())
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
+            let nextDate = task.nextPesterAt ?? task.scheduledStart ?? task.dueAt ?? .distantFuture
+            return nextDate < tomorrow ? .green : .blue
         }
     }
 
@@ -279,6 +287,7 @@ private struct InboxSection: Identifiable {
 
 private struct CompletedTasksView: View {
     @ObservedObject var store: TaskStore
+    @State private var selectedTask: PesterTask?
 
     private var tasks: [PesterTask] {
         store.tasks
@@ -298,27 +307,34 @@ private struct CompletedTasksView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(tasks) { task in
-                    NavigationLink {
-                        TaskDetailView(task: task, store: store)
+                    Button {
+                        selectedTask = task
                     } label: {
                         TaskRow(task: task)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
         .navigationTitle("Completed")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $selectedTask) { task in
+            TaskDetailsSheet(task: task, store: store)
+                .presentationDetents([.height(340), .large])
+                .presentationDragIndicator(.visible)
+        }
     }
 }
 
 private struct TaskRow: View {
     @ObservedObject var task: PesterTask
+    var tint: Color? = nil
 
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: task.state.symbolName)
                 .font(.title3)
-                .foregroundStyle(task.state.tint)
+                .foregroundStyle(tint ?? task.state.tint)
                 .frame(width: 32, height: 44)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
@@ -336,110 +352,267 @@ private struct TaskRow: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }
 
-private struct TaskDetailView: View {
+private enum DueTime {
+    static let minuteInterval = 5
+
+    static func roundedUp(_ date: Date) -> Date {
+        let interval = TimeInterval(minuteInterval * 60)
+        return Date(timeIntervalSinceReferenceDate: ceil(date.timeIntervalSinceReferenceDate / interval) * interval)
+    }
+
+    static func defaultDueDate(from now: Date = Date()) -> Date {
+        roundedUp(now.addingTimeInterval(5 * 60))
+    }
+
+    static func earliestDueDate(from now: Date = Date()) -> Date {
+        roundedUp(now.addingTimeInterval(60))
+    }
+}
+
+private struct FiveMinuteDatePicker: UIViewRepresentable {
+    @Binding var selection: Date
+    let minimumDate: Date
+    let mode: UIDatePicker.Mode
+
+    func makeUIView(context: Context) -> UIDatePicker {
+        let picker = UIDatePicker()
+        picker.datePickerMode = mode
+        picker.minuteInterval = DueTime.minuteInterval
+        picker.minimumDate = minimumDate
+        picker.preferredDatePickerStyle = .compact
+        picker.addTarget(context.coordinator, action: #selector(Coordinator.dateChanged(_:)), for: .valueChanged)
+        return picker
+    }
+
+    func updateUIView(_ picker: UIDatePicker, context: Context) {
+        picker.minimumDate = minimumDate
+        let roundedSelection = DueTime.roundedUp(max(selection, minimumDate))
+        if abs(picker.date.timeIntervalSince(roundedSelection)) > 0.5 {
+            picker.setDate(roundedSelection, animated: false)
+        }
+        if abs(selection.timeIntervalSince(roundedSelection)) > 0.5 {
+            DispatchQueue.main.async {
+                selection = roundedSelection
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    final class Coordinator: NSObject {
+        private let parent: FiveMinuteDatePicker
+
+        init(_ parent: FiveMinuteDatePicker) {
+            self.parent = parent
+        }
+
+        @objc func dateChanged(_ picker: UIDatePicker) {
+            let roundedSelection = DueTime.roundedUp(max(picker.date, parent.minimumDate))
+            if abs(picker.date.timeIntervalSince(roundedSelection)) > 0.5 {
+                picker.setDate(roundedSelection, animated: true)
+            }
+            parent.selection = roundedSelection
+        }
+    }
+}
+
+private struct FiveMinuteDatePickerRow: View {
+    let title: String
+    @Binding var selection: Date
+    let minimumDate: Date
+    let mode: UIDatePicker.Mode
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer(minLength: 12)
+            FiveMinuteDatePicker(
+                selection: $selection,
+                minimumDate: minimumDate,
+                mode: mode
+            )
+            .frame(width: mode == .dateAndTime ? 220 : 100, height: 44)
+            .accessibilityLabel(title)
+        }
+        .frame(minHeight: 44)
+    }
+}
+
+private struct TaskDetailsSheet: View {
+    private enum EditorMode: Equatable {
+        case title
+        case dueDate
+    }
+
     @ObservedObject var task: PesterTask
     @ObservedObject var store: TaskStore
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
-    @State private var interval = 1
-    @State private var snooze = 3
-    @State private var futureDate = Date().addingTimeInterval(5 * 60)
-    @State private var showingEditor = false
+    @FocusState private var titleIsFocused: Bool
+    @State private var editorMode: EditorMode?
+    @State private var titleDraft: String
+    @State private var dueDateDraft: Date
+    @State private var pesterMinutes: Int
+    @State private var snoozeMinutes: Int
+    @State private var saving = false
     @State private var confirmingDelete = false
 
-    private var changed: Bool {
-        interval != task.pesterMinutes || snooze != task.snoozeMinutes
+    init(task: PesterTask, store: TaskStore) {
+        self.task = task
+        self.store = store
+        _titleDraft = State(initialValue: task.title)
+        _dueDateDraft = State(initialValue: DueTime.roundedUp(task.dueAt ?? task.scheduledStart ?? DueTime.defaultDueDate()))
+        _pesterMinutes = State(initialValue: task.pesterMinutes)
+        _snoozeMinutes = State(initialValue: task.snoozeMinutes)
     }
 
-    private var canComplete: Bool {
+    private var editorActionEnabled: Bool {
+        guard !task.busy, !saving else { return false }
+        switch editorMode {
+        case .title:
+            return !titleDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .dueDate:
+            return dueDateDraft > Date()
+        case nil:
+            return true
+        }
+    }
+
+    private var canAct: Bool {
         task.state != .notScheduled && task.state != .completed
     }
 
-    var body: some View {
-        Form {
-            Section("Task") {
-                LabeledContent("Title", value: task.title)
-                LabeledContent("State", value: task.state.rawValue)
-                LabeledContent("Pester count", value: "\(task.pesterCount)/\(task.maxPesterCount)")
-                if task.state == .snoozed, let snoozedUntil = task.snoozedUntil ?? task.scheduledStart {
-                    LabeledContent("Snoozed until") {
-                        Text(snoozedUntil.formatted(date: .abbreviated, time: .shortened))
-                            .multilineTextAlignment(.trailing)
-                    }
-                } else if let next = task.nextPesterAt {
-                    LabeledContent("Next pester") {
-                        Text(next.formatted(date: .abbreviated, time: .shortened))
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-            }
+    @ViewBuilder
+    private var dueDateEditor: some View {
+        Section {
+            DatePicker(
+                "Date",
+                selection: $dueDateDraft,
+                in: DueTime.earliestDueDate()...,
+                displayedComponents: .date
+            )
+            FiveMinuteDatePickerRow(
+                title: "Time",
+                selection: $dueDateDraft,
+                minimumDate: DueTime.earliestDueDate(),
+                mode: .time
+            )
+        } header: {
+            Text("Choose a new due date")
+        } footer: {
+            Text("Setting a new due time replaces this task’s current notification schedule.")
+        }
+    }
 
-            Section("Schedule") {
-                DatePicker(
-                    "Date and time",
-                    selection: $futureDate,
-                    in: Date()...,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .disabled(task.busy)
-                if let scheduledStart = task.scheduledStart, scheduledStart > Date() {
-                    LabeledContent("Scheduled for") {
-                        Text(scheduledStart.formatted(date: .abbreviated, time: .shortened))
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-                Button(task.active ? "Reschedule for selected time" : "Schedule for selected time") {
-                    Task { await task.schedule(at: futureDate) }
-                }
-                .frame(minHeight: 44)
-                .disabled(task.busy || changed || futureDate <= Date())
-            }
+    @ViewBuilder
+    private var titleEditor: some View {
+        Section {
+            TextField("Task title", text: $titleDraft)
+                .font(.title2.weight(.semibold))
+                .textInputAutocapitalization(.sentences)
+                .focused($titleIsFocused)
+                .submitLabel(.done)
+                .onSubmit { saveTitle() }
+        } footer: {
+            Text("Renaming a task preserves its current alert times and pester count.")
+        }
+    }
 
-            Section("Durations") {
-                Stepper("Pester every \(interval) min", value: $interval, in: 1...60)
-                    .disabled(task.busy)
-                Stepper("Snooze for \(snooze) min", value: $snooze, in: 1...60)
-                    .disabled(task.busy)
-                Button(task.active ? "Apply changes and restart countdown" : "Save durations") {
-                    Task { await task.apply(interval: interval, snooze: snooze) }
-                }
-                .frame(minHeight: 44)
-                .disabled(task.busy || !changed)
-                if changed {
-                    Text("Save the durations before scheduling, starting, or snoozing.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+    private var taskSummary: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button { beginTitleEditing() } label: {
+                Text(task.title)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Edit title, \(task.title)")
 
-            Section("Actions") {
-                Button("Start now") { Task { await task.start() } }
-                    .frame(minHeight: 44)
-                    .disabled(task.busy || task.active || changed)
-                Button("Snooze for \(task.snoozeMinutes) min") { Task { await task.start(snoozing: true) } }
-                    .frame(minHeight: 44)
-                    .disabled(task.busy || !task.active || changed)
-                Button("Complete task") { Task { await task.complete() } }
-                    .frame(minHeight: 44)
-                    .disabled(task.busy || !canComplete)
+            Button { beginDueDateEditing() } label: {
+                Text(task.dueAt?.formatted(date: .abbreviated, time: .shortened) ?? "Unavailable")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+                    .background(Color(uiColor: .secondarySystemFill))
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Edit due date, \(task.dueAt?.formatted(date: .abbreviated, time: .shortened) ?? "Unavailable")")
+        }
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color(uiColor: .separator), lineWidth: 1)
+        }
+    }
 
-            Section("Manage Task") {
-                Button("Delete task", role: .destructive) {
-                    confirmingDelete = true
+    private var actionBar: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            if canAct {
+                TaskIconAction(title: "Complete", systemImage: "checkmark", tint: .green, action: completeTask)
+                Spacer(minLength: 0)
+                TaskIconAction(title: "Snooze", systemImage: "moon.zzz", tint: .blue, action: snoozeTask)
+                Spacer(minLength: 0)
+            }
+            TaskIconAction(title: "Delete", systemImage: "trash", tint: .red) {
+                confirmingDelete = true
+            }
+            Spacer(minLength: 0)
+            TaskIconAction(title: "Close", systemImage: "xmark", tint: .secondary, action: dismiss.callAsFunction)
+            Spacer(minLength: 0)
+        }
+        .disabled(task.busy || saving)
+    }
+
+    private var durationBar: some View {
+        HStack(spacing: 0) {
+            TaskDurationControl(
+                title: "Pester every",
+                systemImage: "bell.badge",
+                value: pesterMinutes,
+                selection: $pesterMinutes
+            )
+            TaskDurationControl(
+                title: "Snooze for",
+                systemImage: "timer",
+                value: snoozeMinutes,
+                selection: $snoozeMinutes
+            )
+        }
+        .disabled(task.busy || saving)
+        .onChange(of: pesterMinutes) { _ in saveDurations() }
+        .onChange(of: snoozeMinutes) { _ in saveDurations() }
+    }
+
+    @ViewBuilder
+    private var statusSection: some View {
+        if task.busy || saving || task.showSettings {
+            VStack(spacing: 12) {
+                if task.busy || saving {
+                    ProgressView("Updating…")
                 }
-                .frame(minHeight: 44)
-                .disabled(task.busy)
-            }
-
-            Section("Status") {
-                if task.busy { ProgressView("Updating…") }
-                Text(task.status)
                 if task.showSettings {
                     Button("Open notification settings") {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
@@ -449,55 +622,230 @@ private struct TaskDetailView: View {
                     .frame(minHeight: 44)
                 }
             }
+        }
+    }
 
-            Section("Diagnostics") {
-                LabeledContent("Task ID") {
-                    Text(task.id.uuidString)
-                        .font(.caption)
-                        .monospaced()
-                        .textSelection(.enabled)
-                        .multilineTextAlignment(.trailing)
-                }
-                DisclosureGroup("Interaction log") {
-                    Text("Local events only; background delivery and reading an alert are not reported.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    ForEach(Array(task.events.enumerated()), id: \.offset) { entry in
-                        Text(entry.element)
-                            .font(.caption)
-                            .textSelection(.enabled)
+    var body: some View {
+        NavigationStack {
+            Group {
+                if editorMode == .dueDate {
+                    Form { dueDateEditor }
+                } else if editorMode == .title {
+                    Form { titleEditor }
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 28) {
+                            actionBar
+                            taskSummary
+                            if task.state != .completed {
+                                durationBar
+                            }
+                            statusSection
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 28)
+                        .padding(.bottom, 32)
                     }
                 }
             }
-        }
-        .navigationTitle(task.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Edit") { showingEditor = true }
-            }
-        }
-        .sheet(isPresented: $showingEditor) {
-            TaskEditorSheet(store: store, task: task)
-        }
-        .confirmationDialog("Delete \(task.title)?", isPresented: $confirmingDelete, titleVisibility: .visible) {
-            Button("Delete task", role: .destructive) {
-                Task {
-                    await store.delete(task)
-                    dismiss()
+            .navigationTitle(editorMode == .dueDate ? "Reschedule" : (editorMode == .title ? "Edit Title" : ""))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    if editorMode != nil {
+                        Button("Cancel") { cancelEditing() }
+                            .disabled(task.busy || saving)
+                    }
+                }
+                if editorMode != nil {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(editorMode == .dueDate ? "Set" : "Save") {
+                            switch editorMode {
+                            case .title: saveTitle()
+                            case .dueDate: saveDueDate()
+                            case nil: break
+                            }
+                        }
+                        .disabled(!editorActionEnabled)
+                    }
                 }
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Its pending and delivered notifications will also be removed.")
-        }
-        .onAppear {
-            interval = task.pesterMinutes
-            snooze = task.snoozeMinutes
-            if let scheduledStart = task.scheduledStart, scheduledStart > Date() {
-                futureDate = scheduledStart
+            .interactiveDismissDisabled(editorMode != nil)
+            .onChange(of: editorMode) { mode in
+                titleIsFocused = mode == .title
+            }
+            .confirmationDialog("Delete this task?", isPresented: $confirmingDelete, titleVisibility: .visible) {
+                Button("Delete task", role: .destructive) {
+                    Task {
+                        await store.delete(task)
+                        dismiss()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The task and all of its pending and delivered notifications will be removed.")
             }
         }
+    }
+
+    private func beginTitleEditing() {
+        titleDraft = task.title
+        editorMode = .title
+    }
+
+    private func beginDueDateEditing() {
+        let earliest = DueTime.earliestDueDate()
+        dueDateDraft = DueTime.roundedUp(max(task.dueAt ?? task.scheduledStart ?? earliest, earliest))
+        editorMode = .dueDate
+    }
+
+    private func cancelEditing() {
+        titleDraft = task.title
+        dueDateDraft = task.dueAt ?? task.scheduledStart ?? dueDateDraft
+        editorMode = nil
+    }
+
+    private func saveTitle() {
+        guard editorMode == .title, editorActionEnabled, let dueAt = task.dueAt else { return }
+        saving = true
+        Task {
+            await store.update(
+                task,
+                title: titleDraft,
+                dueAt: dueAt,
+                pesterMinutes: task.pesterMinutes,
+                snoozeMinutes: task.snoozeMinutes
+            )
+            titleDraft = task.title
+            saving = false
+            editorMode = nil
+        }
+    }
+
+    private func saveDueDate() {
+        guard editorMode == .dueDate, editorActionEnabled else { return }
+        saving = true
+        Task {
+            await store.update(
+                task,
+                title: task.title,
+                dueAt: DueTime.roundedUp(dueDateDraft),
+                pesterMinutes: task.pesterMinutes,
+                snoozeMinutes: task.snoozeMinutes
+            )
+            dueDateDraft = DueTime.roundedUp(task.dueAt ?? dueDateDraft)
+            saving = false
+            editorMode = nil
+        }
+    }
+
+    private func saveDurations() {
+        guard !saving,
+              pesterMinutes != task.pesterMinutes || snoozeMinutes != task.snoozeMinutes else { return }
+        let newPesterMinutes = pesterMinutes
+        let newSnoozeMinutes = snoozeMinutes
+        saving = true
+        Task {
+            await task.apply(interval: newPesterMinutes, snooze: newSnoozeMinutes)
+            pesterMinutes = task.pesterMinutes
+            snoozeMinutes = task.snoozeMinutes
+            saving = false
+        }
+    }
+
+    private func snoozeTask() {
+        Task {
+            await task.start(snoozing: true)
+            dismiss()
+        }
+    }
+
+    private func completeTask() {
+        Task {
+            await task.complete()
+            dismiss()
+        }
+    }
+}
+
+private struct TaskIconAction: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(tint)
+                .frame(width: 53, height: 53)
+                .overlay {
+                    Circle()
+                        .stroke(Color(uiColor: .separator), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+}
+
+private struct TaskDurationControl: View {
+    private static let options = [1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60]
+
+    let title: String
+    let systemImage: String
+    let value: Int
+    @Binding var selection: Int
+
+    var body: some View {
+        Menu {
+            Section(title) {
+                ForEach(Self.options, id: \.self) { minutes in
+                    Button(minutes == 1 ? "1 minute" : "\(minutes) minutes") {
+                        selection = minutes
+                    }
+                }
+            }
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.tint)
+                    .frame(width: 44, height: 44)
+                    .background(Color.accentColor.opacity(0.14), in: Circle())
+                Text(value == 1 ? "1 min" : "\(value) min")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .frame(maxWidth: .infinity, minHeight: 68)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel("\(title), \(value == 1 ? "1 minute" : "\(value) minutes")")
+    }
+}
+
+private struct DurationPicker: View {
+    private static let options = [1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60]
+
+    let title: String
+    @Binding var selection: Int
+
+    init(_ title: String, selection: Binding<Int>) {
+        self.title = title
+        _selection = selection
+    }
+
+    var body: some View {
+        Picker(title, selection: $selection) {
+            ForEach(Self.options, id: \.self) { minutes in
+                Text(minutes == 1 ? "1 minute" : "\(minutes) minutes")
+                    .tag(minutes)
+            }
+        }
+        .pickerStyle(.menu)
     }
 }
 
@@ -514,9 +862,9 @@ private struct TaskEditorSheet: View {
     init(store: TaskStore, task: PesterTask? = nil) {
         self.store = store
         self.task = task
-        let earliest = Date().addingTimeInterval(60)
+        let earliest = DueTime.earliestDueDate()
         _title = State(initialValue: task?.title ?? "")
-        _dueAt = State(initialValue: max(task?.dueAt ?? task?.scheduledStart ?? Date().addingTimeInterval(5 * 60), earliest))
+        _dueAt = State(initialValue: DueTime.roundedUp(max(task?.dueAt ?? task?.scheduledStart ?? DueTime.defaultDueDate(), earliest)))
         _pesterMinutes = State(initialValue: task?.pesterMinutes ?? 5)
         _snoozeMinutes = State(initialValue: task?.snoozeMinutes ?? 15)
     }
@@ -531,17 +879,17 @@ private struct TaskEditorSheet: View {
                 Section("Task") {
                     TextField("Title", text: $title)
                         .textInputAutocapitalization(.sentences)
-                    DatePicker(
-                        "Due",
+                    FiveMinuteDatePickerRow(
+                        title: "Due",
                         selection: $dueAt,
-                        in: Date()...,
-                        displayedComponents: [.date, .hourAndMinute]
+                        minimumDate: DueTime.earliestDueDate(),
+                        mode: .dateAndTime
                     )
                 }
 
                 Section {
-                    Stepper("Every \(pesterMinutes) min", value: $pesterMinutes, in: 1...60)
-                    Stepper("Snooze for \(snoozeMinutes) min", value: $snoozeMinutes, in: 1...60)
+                    DurationPicker("Pester every", selection: $pesterMinutes)
+                    DurationPicker("Snooze for", selection: $snoozeMinutes)
                 } header: {
                     Text("Pestering")
                 } footer: {
@@ -574,14 +922,14 @@ private struct TaskEditorSheet: View {
                 await store.update(
                     task,
                     title: title,
-                    dueAt: dueAt,
+                    dueAt: DueTime.roundedUp(dueAt),
                     pesterMinutes: pesterMinutes,
                     snoozeMinutes: snoozeMinutes
                 )
             } else {
                 await store.create(
                     title: title,
-                    dueAt: dueAt,
+                    dueAt: DueTime.roundedUp(dueAt),
                     pesterMinutes: pesterMinutes,
                     snoozeMinutes: snoozeMinutes
                 )
