@@ -154,5 +154,4 @@ Check current official documentation rather than relying on remembered platform 
 
 ## Prior conversation
 
-- Previous conversation: https://chatgpt.com/share/6aa2b94c-3ddc-83e8-8fd6-d1d06701a72b
-- This file summarizes the project context supplied by the user; the linked conversation has not been independently reviewed.
+- This file summarizes the project context supplied by the user. The prior-chat link is intentionally kept out of the repository so publishing it does not broaden access to that conversation.
