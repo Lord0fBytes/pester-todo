@@ -5,8 +5,9 @@
 Pester is a focused native iPhone reminder app for things that genuinely need your attention. Schedule a task, choose how often it should pester you, and explicitly complete or snooze it when you are ready.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/d20b047d-7172-4757-94c2-46647fb62132" width="360"/>
-  <img src="docs/screenshots/details.png" alt="Pester inbox with a task details sheet showing complete, snooze, delete, and timing controls" width="360">
+  <img src="https://github.com/user-attachments/assets/d20b047d-7172-4757-94c2-46647fb62132" width="300"/>
+  <img src="docs/screenshots/details.png" alt="Pester inbox with a task details sheet showing complete, snooze, delete, and timing controls" width="300">
+  <img src="https://github.com/user-attachments/assets/75f456e5-23d2-46e6-86bb-8f22effe2e8a" width="300"/>
 </p>
 
 ## What it does
